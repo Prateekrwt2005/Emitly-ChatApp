@@ -28,10 +28,10 @@ export const signup=async(req,res)=>{
          const newUser= new User({username:fullname,email,password:hashedPassword});
 
         if(newUser){
-            generateToken(newUser._id,res);
-           await newUser.save();
+           const savedUser= await newUser.save();
+           generateToken(res,savedUser._id);
 
-            res.status(201).json({_id:newUser._id,username:newUser.username,email:newUser.email,profilePic:newUser.profilePic});
+            res.status(201).json({_id:savedUser._id,username:savedUser.username,email:savedUser.email,profilePic:savedUser.profilePic});
         }else{
             res.status(400).json({message:"Failed to create user"});
         }
