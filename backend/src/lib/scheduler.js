@@ -24,9 +24,14 @@ export const startScheduler = () => {
         // Check if receiver is online
         const receiverSocketId = msg.receiverId ? getReceiverSocketId(msg.receiverId) : null;
         
-        msg.status = receiverSocketId ? "delivered" : "sent";
-        msg.createdAt = msg.scheduledAt || new Date(); // Update createdAt to the scheduled/delivery time so it sorts correctly at the bottom of the chat
-        await msg.save();
+        const newStatus = receiverSocketId ? "delivered" : "sent";
+        const newCreatedAt = msg.scheduledAt || new Date();
+
+        // Bypass Mongoose timestamps validation to update createdAt
+        await Message.collection.updateOne(
+          { _id: msg._id },
+          { $set: { status: newStatus, createdAt: newCreatedAt } }
+        );
 
         if (msg.groupId) {
           // Group Broadcast
