@@ -1,10 +1,83 @@
-// How to make animated gradient border 👇
-// https://cruip-tutorials.vercel.app/animated-gradient-border/
+import { motion } from "framer-motion";
+
 function BorderAnimatedContainer({ children }) {
   return (
-    <div className="w-full h-full [background:linear-gradient(45deg,#172033,theme(colors.slate.800)_50%,#172033)_padding-box,conic-gradient(from_var(--border-angle),theme(colors.slate.600/.48)_80%,_theme(colors.cyan.500)_86%,_theme(colors.cyan.300)_90%,_theme(colors.cyan.500)_94%,_theme(colors.slate.600/.48))_border-box] rounded-2xl border border-transparent animate-border  flex overflow-hidden">
-      {children}
+    <div className="relative w-full h-full rounded-none md:rounded-[32px] overflow-hidden p-0 md:p-[1.5px] transition-all duration-300">
+
+      {/* Rotating Conic Glowing Border */}
+      <div
+        style={{
+          background: "conic-gradient(from var(--border-angle), transparent 20%, rgba(255, 255, 255, 0.45) 50%, transparent 80%)",
+        }}
+        className="
+        absolute
+        inset-0
+        rounded-none
+        md:rounded-[32px]
+        animate-border
+        "
+      />
+
+      {/* Metallic Outer Border Base */}
+      <div
+        className="
+        absolute
+        inset-0
+        rounded-none
+        md:rounded-[32px]
+        bg-gradient-to-b
+        from-white/10
+        via-white/2
+        to-white/5
+        -z-10
+        "
+      />
+
+      {/* Moving Shine */}
+      <motion.div
+        animate={{
+          x: ["-150%", "250%"],
+        }}
+        transition={{
+          duration: 4.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="
+        absolute
+        top-0
+        left-0
+        h-full
+        w-[300px]
+        bg-[linear-gradient(to_right,transparent,rgba(255,255,255,0.015)_20%,rgba(255,255,255,0.06)_50%,rgba(255,255,255,0.015)_80%,transparent)]
+        pointer-events-none
+        "
+      />
+
+      {/* Main Card */}
+      <div
+        className="
+        relative
+        h-full
+        w-full
+        rounded-none
+        md:rounded-[32px]
+        overflow-hidden
+
+        bg-[#070708]/95
+
+        border
+        border-white/[0.08]
+
+        backdrop-blur-2xl
+
+        shadow-[0_50px_120px_rgba(0,0,0,0.95)]
+        "
+      >
+        {children}
+      </div>
     </div>
   );
 }
+
 export default BorderAnimatedContainer;

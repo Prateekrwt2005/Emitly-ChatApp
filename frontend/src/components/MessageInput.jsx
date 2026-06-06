@@ -1,34 +1,71 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useKeyboardSound from "../hooks/useKeyboardSound";
 import { useChatStore } from "../store/useChatStore";
 import toast from "react-hot-toast";
-import { ImageIcon, SendIcon, XIcon } from "lucide-react";
+import { 
+  ImageIcon, SendIcon, XIcon, MicIcon, CameraIcon, Trash2Icon, SmileIcon, 
+  Eye, EyeOff, CalendarIcon, BarChart2Icon, Loader2Icon 
+} from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
+import CameraModal from "./CameraModal";
+import EmojiPicker from "./EmojiPicker";
+import PollCreator from "./PollCreator";
 
 function MessageInput() {
   const { playRandomKeyStrokeSound } = useKeyboardSound();
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
+  const [isViewOnce, setIsViewOnce] = useState(false);
+  
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const [isPollOpen, setIsPollOpen] = useState(false);
+
+  // Scheduled message states
+  const [scheduledAt, setScheduledAt] = useState(null);
+  const [showSchedulePicker, setShowSchedulePicker] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
 
   const fileInputRef = useRef(null);
+  const textInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+  const timerRef = useRef(null);
+  const shouldSendRef = useRef(true);
+  const emojiPickerRef = useRef(null);
+  const schedulePickerRef = useRef(null);
 
-  const { sendMessage, isSoundEnabled } = useChatStore();
+  const { sendMessage, isSoundEnabled, selectedUser, selectedGroup, replyToMessage, setReplyToMessage } = useChatStore();
+  const { authUser } = useAuthStore();
+  const activeChat = selectedUser || selectedGroup;
+  const isBlockedByMe = selectedUser ? authUser?.blockedUsers?.includes(selectedUser?._id) : false;
 
   const handleSendMessage = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!text.trim() && !imagePreview) return;
-
     if (isSoundEnabled) playRandomKeyStrokeSound();
 
-    sendMessage({
-      text: text.trim(),
-      image: imagePreview,
+    sendMessage({ 
+      text: text.trim(), 
+      image: imagePreview, 
+      isViewOnce,
+      scheduledAt: scheduledAt || undefined
     });
 
     setText("");
     setImagePreview(null);
+    setIsEmojiPickerOpen(false);
+    setIsViewOnce(false);
+    setScheduledAt(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleSendPoll = (pollData) => {
+    sendMessage(pollData);
   };
 
   const handleImageChange = (e) => {
@@ -37,7 +74,6 @@ function MessageInput() {
       toast.error("Please select an image file");
       return;
     }
-
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result);
     reader.readAsDataURL(file);
@@ -50,85 +86,449 @@ function MessageInput() {
 
   const handleTyping = () => {
     const socket = useAuthStore.getState().socket;
-    const { selectedUser } = useChatStore.getState();
-
-    if (!selectedUser) return;
-
+    if (!selectedUser || !socket) return;
     socket.emit("typing", { receiverId: selectedUser._id });
-
     clearTimeout(typingTimeoutRef.current);
-
     typingTimeoutRef.current = setTimeout(() => {
-  socket.emit("stopTyping", { receiverId: selectedUser._id });
-}, 800);
+      if (socket) {
+        socket.emit("stopTyping", { receiverId: selectedUser._id });
+      }
+    }, 800);
   };
 
+  // Recording Logic
+  const startRecording = async () => {
+    chunksRef.current = [];
+    shouldSendRef.current = true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64Audio = reader.result;
+          if (shouldSendRef.current) {
+            sendMessage({ 
+              audio: base64Audio, 
+              isViewOnce,
+              scheduledAt: scheduledAt || undefined
+            });
+            setIsViewOnce(false);
+            setScheduledAt(null);
+          }
+        };
+        reader.readAsDataURL(blob);
+        
+        // Stop stream tracks
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      recorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      timerRef.current = setInterval(() => {
+        setRecordingTime((t) => t + 1);
+      }, 1000);
+    } catch (err) {
+      console.error("Microphone access error:", err);
+      toast.error("Could not access microphone. Please check permissions.");
+    }
+  };
+
+  const stopRecording = (send = true) => {
+    if (!mediaRecorderRef.current) return;
+    shouldSendRef.current = send;
+    clearInterval(timerRef.current);
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
+  };
+
+  const formatRecordingTime = (secs) => {
+    const mins = Math.floor(secs / 60);
+    const remainingSecs = secs % 60;
+    return `${mins}:${remainingSecs < 10 ? "0" : ""}${remainingSecs}`;
+  };
+
+  // Close emoji picker and scheduler when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+        setIsEmojiPickerOpen(false);
+      }
+      if (schedulePickerRef.current && !schedulePickerRef.current.contains(event.target)) {
+        setShowSchedulePicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Inline formatting helper
+  const applyFormatting = (prefix, suffix) => {
+    const input = textInputRef.current;
+    if (!input) return;
+
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const val = input.value;
+
+    const selectedText = val.substring(start, end);
+    const replacement = prefix + selectedText + suffix;
+
+    setText(val.substring(0, start) + replacement + val.substring(end));
+    
+    // Reset focus and position selection cursor
+    setTimeout(() => {
+      input.focus();
+      const newCursorPos = start + prefix.length + selectedText.length + suffix.length;
+      input.setSelectionRange(newCursorPos, newCursorPos);
+    }, 50);
+  };
+
+  // Schedule handler
+  const handleSetSchedule = (e) => {
+    e.preventDefault();
+    if (!scheduleDate || !scheduleTime) {
+      toast.error("Please specify both date and time");
+      return;
+    }
+    const target = new Date(`${scheduleDate}T${scheduleTime}`);
+    if (target <= new Date()) {
+      toast.error("Schedule time must be in the future");
+      return;
+    }
+    setScheduledAt(target.toISOString());
+    setShowSchedulePicker(false);
+  };
+
+  if (!activeChat) return null;
+
   return (
-    <div className="p-4 border-t border-white/10">
+    <div className="px-3 py-4 md:px-4 bg-[#0a0a0a] border-t border-white/[0.06]">
+      {/* REPLY PREVIEW */}
+      {replyToMessage && (
+        <div className="w-full max-w-full px-1 md:px-2 mb-2 bg-[#121214] border border-white/[0.06] rounded-xl px-3 py-2 flex items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2 min-w-0 flex-1 border-l-2 border-zinc-500 pl-2">
+            <div className="min-w-0 flex-1 text-left">
+              <div className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">
+                Replying to {replyToMessage.senderId === authUser._id || replyToMessage.senderId?._id === authUser._id ? "you" : (selectedUser?.fullName || replyToMessage.senderId?.fullName || "Member")}
+              </div>
+              <div className="text-xs text-zinc-300 truncate">
+                {replyToMessage.text 
+                  ? replyToMessage.text 
+                  : replyToMessage.image 
+                    ? "📷 Photo" 
+                    : replyToMessage.audio 
+                      ? "🎵 Voice message" 
+                      : "Message"}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setReplyToMessage(null)}
+            className="p-1 rounded-md text-zinc-500 hover:text-white transition-colors"
+          >
+            <XIcon className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* SCHEDULED MESSAGE BANNER */}
+      {scheduledAt && (
+        <div className="w-full max-w-full px-1 md:px-2 mb-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 flex items-center justify-between gap-3 animate-fadeIn select-none">
+          <div className="flex items-center gap-2 text-left">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <span className="text-xs text-amber-200">
+              Message will send later: <strong className="font-semibold">{new Date(scheduledAt).toLocaleString()}</strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setScheduledAt(null)}
+            className="p-1 rounded-md text-amber-500 hover:text-white transition-colors"
+          >
+            <XIcon className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* MARKDOWN FORMATTING TOOLBAR */}
+      {!isBlockedByMe && !isRecording && (
+        <div className="flex gap-1.5 mb-2 px-1 text-zinc-500 text-xs items-center select-none overflow-x-auto whitespace-nowrap">
+          <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-wider mr-1.5">Format:</span>
+          <button
+            type="button"
+            onClick={() => applyFormatting("**", "**")}
+            className="px-2 py-1 bg-white/5 border border-white/[0.04] rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 text-[10px] font-bold transition-all"
+            title="Bold (**text**)"
+          >
+            B
+          </button>
+          <button
+            type="button"
+            onClick={() => applyFormatting("*", "*")}
+            className="px-2 py-1 bg-white/5 border border-white/[0.04] rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 text-[10px] italic transition-all"
+            title="Italic (*text*)"
+          >
+            I
+          </button>
+          <button
+            type="button"
+            onClick={() => applyFormatting("~~", "~~")}
+            className="px-2 py-1 bg-white/5 border border-white/[0.04] rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 text-[10px] line-through transition-all"
+            title="Strikethrough (~~text~~)"
+          >
+            S
+          </button>
+          <button
+            type="button"
+            onClick={() => applyFormatting("`", "`")}
+            className="px-2 py-1 bg-white/5 border border-white/[0.04] rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 text-[10px] font-mono transition-all"
+            title="Inline Code (`text`)"
+          >
+            C
+          </button>
+          <button
+            type="button"
+            onClick={() => applyFormatting("```\n", "\n```")}
+            className="px-2 py-1 bg-white/5 border border-white/[0.04] rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 text-[10px] font-mono transition-all"
+            title="Code Block (```code```)"
+          >
+            Code Block
+          </button>
+        </div>
+      )}
+
       {/* IMAGE PREVIEW */}
       {imagePreview && (
-        <div className="max-w-3xl mx-auto mb-3 flex items-center">
+        <div className="w-full max-w-full px-1 md:px-2 mb-3 flex items-center">
           <div className="relative">
             <img
               src={imagePreview}
               alt="Preview"
-              className="w-20 h-20 object-cover rounded-lg border border-white/10"
+              className="w-16 h-16 object-cover rounded-xl border border-white/10"
             />
             <button
               onClick={removeImage}
-              className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-black/70 backdrop-blur flex items-center justify-center text-white hover:bg-black"
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#1e1e1e] border border-white/10 flex items-center justify-center text-[#aaa] hover:text-white transition"
               type="button"
             >
-              <XIcon className="w-4 h-4" />
+              <XIcon className="w-3 h-3" />
             </button>
           </div>
         </div>
       )}
 
       {/* INPUT BAR */}
-      <form
-        onSubmit={handleSendMessage}
-        className="max-w-3xl mx-auto"
-      >
-        <div className="flex items-center gap-2 px-4 py-3 rounded-full
-          bg-white/5 backdrop-blur-md border border-white/10
-          focus-within:border-cyan-500/50 transition-all"
+      <form onSubmit={handleSendMessage} className="w-full max-w-full px-1 md:px-2">
+        <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl
+          bg-[#1a1a1a] border transition-all ${
+            isViewOnce 
+              ? "border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)] focus-within:border-amber-500/80" 
+              : "border-white/[0.08] focus-within:border-white/20"
+          }`}
         >
-          {/* TEXT INPUT */}
-          <input
-            type="text"
-            value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-              isSoundEnabled && playRandomKeyStrokeSound();
-              handleTyping();
-            }}
-            placeholder="Type a message..."
-            className="flex-1 bg-transparent outline-none text-ml text-slate-200 placeholder:text-slate-400"
-          />
+          {isRecording ? (
+            /* RECORDING ACTIVE VIEW */
+            <div className="flex-1 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-sm text-zinc-400 font-mono">
+                  {formatRecordingTime(recordingTime)}
+                </span>
+              </div>
+              <div className="flex-1 text-center text-xs text-zinc-600 truncate">
+                Recording voice message...
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => stopRecording(false)}
+                  className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 transition"
+                  title="Discard Recording"
+                >
+                  <Trash2Icon className="w-4.5 h-4.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => stopRecording(true)}
+                  className="p-1.5 rounded-lg bg-white text-black hover:bg-zinc-200 transition"
+                  title="Send Recording"
+                >
+                  <SendIcon className="w-4 h-4 fill-black" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* NORMAL VIEW */
+            <>
+              {/* CAMERA BUTTON */}
+              <button
+                type="button"
+                onClick={() => setIsCameraOpen(true)}
+                disabled={isBlockedByMe}
+                className="p-2 md:p-1.5 rounded-lg text-[#444] hover:text-white transition disabled:opacity-20 disabled:hover:text-[#444]"
+                title="Camera Photo"
+              >
+                <CameraIcon className="w-5 h-5" />
+              </button>
 
-          {/* IMAGE BUTTON */}
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className={`p-2 rounded-full transition ${
-              imagePreview
-                ? "text-cyan-400"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <ImageIcon className="w-6 h-6" />
-          </button>
+              {/* IMAGE BUTTON */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isBlockedByMe}
+                className={`p-2 md:p-1.5 rounded-lg transition disabled:opacity-20 ${
+                  imagePreview ? "text-white" : "text-[#444] hover:text-white"
+                }`}
+                title="Attach Image"
+              >
+                <ImageIcon className="w-5 h-5" />
+              </button>
 
-          {/* SEND BUTTON */}
-          <button
-            type="submit"
-            disabled={!text.trim() && !imagePreview}
-            className="p-2 rounded-full bg-cyan-600 hover:bg-cyan-700
-            text-white transition disabled:opacity-50"
-          >
-            <SendIcon className="w-6 h-6" />
-          </button>
+              {/* POLL CREATOR TRIGGER */}
+              <button
+                type="button"
+                onClick={() => setIsPollOpen(true)}
+                disabled={isBlockedByMe}
+                className="p-2 md:p-1.5 rounded-lg text-[#444] hover:text-white transition disabled:opacity-20 disabled:hover:text-[#444]"
+                title="Create Poll"
+              >
+                <BarChart2Icon className="w-5 h-5" />
+              </button>
+
+              {/* SCHEDULE DISPATCH TRIGGER */}
+              <div ref={schedulePickerRef} className="relative flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setShowSchedulePicker(!showSchedulePicker)}
+                  disabled={isBlockedByMe}
+                  className={`p-2 md:p-1.5 rounded-lg transition disabled:opacity-20 ${
+                    scheduledAt ? "text-amber-500 animate-pulse" : "text-[#444] hover:text-white"
+                  }`}
+                  title="Schedule Message"
+                >
+                  <CalendarIcon className="w-5 h-5" />
+                </button>
+                {showSchedulePicker && (
+                  <div className="absolute bottom-full mb-3 right-0 bg-[#0d0d0d] border border-white/10 rounded-2xl p-4 shadow-2xl z-40 min-w-[240px] flex flex-col gap-3 animate-fadeIn">
+                    <span className="text-xs font-semibold text-zinc-300 text-left">Schedule Message</span>
+                    <form onSubmit={handleSetSchedule} className="flex flex-col gap-2">
+                      <input
+                        type="date"
+                        required
+                        value={scheduleDate}
+                        onChange={(e) => setScheduleDate(e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-white/20"
+                      />
+                      <input
+                        type="time"
+                        required
+                        value={scheduleTime}
+                        onChange={(e) => setScheduleTime(e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-white/20"
+                      />
+                      <div className="flex gap-2 mt-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowSchedulePicker(false)}
+                          className="flex-1 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-semibold text-white transition-all"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-1 py-1.5 bg-white text-black hover:bg-zinc-200 rounded-lg text-[10px] font-semibold transition-all"
+                        >
+                          Set
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+              </div>
+
+              {/* EMOJI PICKER TRIGGER */}
+              <div ref={emojiPickerRef} className="relative flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
+                  disabled={isBlockedByMe}
+                  className={`p-2 md:p-1.5 rounded-lg transition disabled:opacity-20 ${
+                    isEmojiPickerOpen ? "text-white" : "text-[#444] hover:text-white"
+                  }`}
+                  title="Choose Emoji"
+                >
+                  <SmileIcon className="w-5 h-5" />
+                </button>
+                {isEmojiPickerOpen && (
+                  <EmojiPicker onSelect={(emoji) => setText((prev) => prev + emoji)} />
+                )}
+              </div>
+
+              {/* TEXT INPUT */}
+              <input
+                ref={textInputRef}
+                type="text"
+                value={text}
+                disabled={isBlockedByMe}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  isSoundEnabled && playRandomKeyStrokeSound();
+                  handleTyping();
+                }}
+                placeholder={isBlockedByMe ? "You have blocked this user" : "Message..."}
+                className="flex-1 bg-transparent outline-none text-base md:text-sm text-[#e0e0e0] placeholder:text-[#444] disabled:opacity-50"
+              />
+
+              {/* VIEW-ONCE TOGGLE */}
+              <button
+                type="button"
+                onClick={() => setIsViewOnce(!isViewOnce)}
+                disabled={isBlockedByMe}
+                className={`p-2 md:p-1.5 rounded-lg transition shrink-0 disabled:opacity-20 ${
+                  isViewOnce ? "text-amber-500" : "text-[#444] hover:text-white"
+                }`}
+                title={isViewOnce ? "View-once enabled" : "Enable view-once"}
+              >
+                {isViewOnce ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+
+              {/* AUDIO RECORDING TRIGGER */}
+              {!text.trim() && !imagePreview && (
+                <button
+                  type="button"
+                  onClick={startRecording}
+                  disabled={isBlockedByMe}
+                  className="p-2 md:p-1.5 rounded-lg text-[#444] hover:text-white transition disabled:opacity-20 disabled:hover:text-[#444]"
+                  title="Record Voice Note"
+                >
+                  <MicIcon className="w-5 h-5" />
+                </button>
+              )}
+
+              {/* SEND BUTTON */}
+              {(text.trim() || imagePreview) && (
+                <button
+                  type="submit"
+                  className="p-2 md:p-1.5 rounded-lg bg-white text-black hover:bg-[#e0e0e0]
+                  transition active:scale-95"
+                >
+                  <SendIcon className="w-4 h-4" />
+                </button>
+              )}
+            </>
+          )}
 
           {/* HIDDEN FILE INPUT */}
           <input
@@ -140,6 +540,28 @@ function MessageInput() {
           />
         </div>
       </form>
+
+      {/* CAMERA VIEWFINDER MODAL */}
+      <CameraModal
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onCapture={(imgData) => {
+          sendMessage({ 
+            image: imgData, 
+            isViewOnce,
+            scheduledAt: scheduledAt || undefined
+          });
+          setIsViewOnce(false);
+          setScheduledAt(null);
+        }}
+      />
+
+      {/* POLL CREATOR MODAL */}
+      <PollCreator
+        isOpen={isPollOpen}
+        onClose={() => setIsPollOpen(false)}
+        onSend={handleSendPoll}
+      />
     </div>
   );
 }

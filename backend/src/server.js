@@ -5,8 +5,11 @@ import connectDB from './lib/db.js';
 import { ENV } from './lib/env.js';
 import cookieParser from 'cookie-parser';
 import messageRoutes from './routes/message.route.js';
+import groupRoutes from './routes/group.route.js';
+import secretRoutes from './routes/secret.route.js';
 import cors from 'cors';
 import {app, server} from './lib/socket.js';
+import { startScheduler } from './lib/scheduler.js';
 
 
 const _dirname= path.resolve();
@@ -20,6 +23,8 @@ app.use(cookieParser());
 
 app.use("/api/auth",authRoutes);
 app.use("/api/messages",messageRoutes);
+app.use("/api/groups",groupRoutes);
+app.use("/api/secret",secretRoutes);
 
 if(ENV.NODE_ENV==="production"){
   app.use(express.static(path.join(_dirname,"../frontend/dist")));
@@ -32,4 +37,5 @@ if(ENV.NODE_ENV==="production"){
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   connectDB();
+  startScheduler();
 });

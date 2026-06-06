@@ -20,6 +20,24 @@ const userSchema= new mongoose.Schema({
         type:String,
         default:""
     },
+    bio:{
+        type:String,
+        default:""
+    },
+    customStatus:{
+        emoji:{
+            type:String,
+            default:""
+        },
+        text:{
+            type:String,
+            default:""
+        }
+    },
+    blockedUsers:[{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User"
+    }]
 },{timestamps:true});             
 const User = mongoose.models.User || mongoose.model("User", userSchema);
 export default User;
