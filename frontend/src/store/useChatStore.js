@@ -240,12 +240,13 @@ export const useChatStore = create((set, get) => ({
       const sharedKey = localCryptoKeys.sharedKeys[userId];
       messages = await Promise.all(
         messages.map(async (msg) => {
-          if (msg.isSecret && msg.text) {
+          const isProbablySecret = msg.isSecret || (msg.text && msg.text.includes(":") && !msg.text.includes(" "));
+          if (isProbablySecret && msg.text) {
             if (sharedKey) {
               const decrypted = await decryptText(msg.text, sharedKey);
-              return { ...msg, text: decrypted };
+              return { ...msg, text: decrypted, isSecret: true };
             } else {
-              return { ...msg, text: "[E2E Encrypted - Handshake Key Cleared]" };
+              return { ...msg, text: "[E2E Encrypted - Handshake Key Cleared]", isSecret: true };
             }
           }
           return msg;
@@ -824,13 +825,16 @@ export const useChatStore = create((set, get) => ({
       }
 
       // Decrypt secret messages locally in RAM
-      if (newMessage.isSecret && newMessage.text) {
+      const isProbablySecret = newMessage.isSecret || (newMessage.text && newMessage.text.includes(":") && !newMessage.text.includes(" "));
+      if (isProbablySecret && newMessage.text) {
         const senderId = newMessage.senderId?._id || newMessage.senderId;
         const sharedKey = localCryptoKeys.sharedKeys[senderId];
         if (sharedKey) {
           newMessage.text = await decryptText(newMessage.text, sharedKey);
+          newMessage.isSecret = true;
         } else {
           newMessage.text = "[E2E Encrypted - Handshake Key Cleared]";
+          newMessage.isSecret = true;
         }
       }
 

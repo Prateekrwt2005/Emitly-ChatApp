@@ -92,7 +92,7 @@ export const getMessagesByUserId = async (req, res) => {
 // ================= SEND MESSAGE =================
 export const sendMessage = async (req, res) => {
   try {
-    const { text, image, audio, replyTo, isViewOnce, scheduledAt } = req.body;
+    const { text, image, audio, replyTo, isViewOnce, scheduledAt, isSecret } = req.body;
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
 
@@ -157,6 +157,7 @@ export const sendMessage = async (req, res) => {
       replyTo: replyTo || undefined,
       isViewOnce: !!isViewOnce,
       scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+      isSecret: !!isSecret,
     });
 
     if (replyTo) {

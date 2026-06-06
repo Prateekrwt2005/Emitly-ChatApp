@@ -558,7 +558,7 @@ function ChatContainer() {
         ref={scrollContainerRef}
         onScroll={handleScroll}
         onClick={handleContainerClick}
-        className={`flex-1 px-3 py-4 md:px-4 overflow-y-auto scroll-smooth relative ${getWallpaperClass()}`}
+        className={`flex-1 px-3 py-4 md:px-4 overflow-y-auto overflow-x-hidden scroll-smooth relative ${getWallpaperClass()}`}
       >
         {/* Sticky Chat search panel */}
         {isMsgSearchOpen && (
@@ -674,7 +674,7 @@ function ChatContainer() {
                       )}
 
                        <div
-                        className={`relative max-w-[85%] md:max-w-[72%] rounded-2xl text-[14px] leading-relaxed shadow-sm cursor-pointer select-text
+                        className={`relative max-w-[85%] md:max-w-[72%] rounded-2xl text-[14px] leading-relaxed shadow-sm cursor-pointer select-text break-words overflow-hidden
                           ${(msg.image || msg.audio) && !msg.text ? "p-1 pb-1.5" : "px-3.5 py-2"}
                           ${isMe
                             ? "bg-white text-black rounded-br-[4px] shadow-[0_4px_12px_rgba(255,255,255,0.03)]"
