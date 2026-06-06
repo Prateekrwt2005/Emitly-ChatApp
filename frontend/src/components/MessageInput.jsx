@@ -213,7 +213,7 @@ function MessageInput() {
   if (!activeChat) return null;
 
   return (
-    <div className="px-3 py-4 md:px-4 bg-[#0a0a0a] border-t border-white/[0.06]">
+    <div className="relative z-30 px-3 py-4 md:px-4 bg-[#0a0a0a] border-t border-white/[0.06]">
       {/* REPLY PREVIEW */}
       {replyToMessage && (
         <div className="w-full max-w-full px-1 md:px-2 mb-2 bg-[#121214] border border-white/[0.06] rounded-xl px-3 py-2 flex items-center justify-between gap-3 animate-fadeIn">
