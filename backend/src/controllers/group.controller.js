@@ -115,12 +115,12 @@ export const getGroupMessages = async (req, res) => {
 // ================= SEND GROUP MESSAGE =================
 export const sendGroupMessage = async (req, res) => {
   try {
-    const { text, image, audio, replyTo, scheduledAt } = req.body;
+    const { text, image, audio, replyTo, scheduledAt, poll } = req.body;
     const { id: groupId } = req.params;
     const senderId = req.user._id;
 
-    if (!text && !image && !audio) {
-      return res.status(400).json({ message: "Text, image, or audio is required." });
+    if (!text && !image && !audio && !poll) {
+      return res.status(400).json({ message: "Text, image, audio, or poll is required." });
     }
 
     const groupExists = await Group.exists({ _id: groupId });
@@ -155,6 +155,7 @@ export const sendGroupMessage = async (req, res) => {
       status,
       replyTo: replyTo || undefined,
       scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+      poll: poll || undefined,
     });
 
     newMessage = await Message.findById(newMessage._id)

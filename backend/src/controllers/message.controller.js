@@ -92,12 +92,12 @@ export const getMessagesByUserId = async (req, res) => {
 // ================= SEND MESSAGE =================
 export const sendMessage = async (req, res) => {
   try {
-    const { text, image, audio, replyTo, isViewOnce, scheduledAt, isSecret } = req.body;
+    const { text, image, audio, replyTo, isViewOnce, scheduledAt, isSecret, poll } = req.body;
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
 
-    if (!text && !image && !audio) {
-      return res.status(400).json({ message: "Text, image, or audio is required." });
+    if (!text && !image && !audio && !poll) {
+      return res.status(400).json({ message: "Text, image, audio, or poll is required." });
     }
 
     if (senderId.equals(receiverId)) {
@@ -158,6 +158,7 @@ export const sendMessage = async (req, res) => {
       isViewOnce: !!isViewOnce,
       scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
       isSecret: !!isSecret,
+      poll: poll || undefined,
     });
 
     if (replyTo) {
