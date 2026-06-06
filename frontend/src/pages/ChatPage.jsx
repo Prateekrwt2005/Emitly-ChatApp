@@ -11,12 +11,12 @@ function ChatPage() {
   const { activeTab, selectedUser, selectedGroup, isSidebarCollapsed, searchQuery, setSearchQuery } = useChatStore();
 
   return (
-    <div className="relative w-full max-w-6xl h-dvh md:h-[88vh] transition-all duration-300">
+    <div className="relative w-full max-w-6xl h-dvh md:h-[88vh]">
       <BorderAnimatedContainer>
         <div className="flex h-full w-full overflow-hidden">
           {/* LEFT SIDEBAR */}
           <div
-            className={`bg-[#0d0d0d] flex flex-col border-r border-white/[0.06] transition-all duration-300
+            className={`bg-[#0d0d0d] flex flex-col border-r border-white/[0.06] transition-[width] duration-300
               ${isSidebarCollapsed ? "md:w-20" : "md:w-72"}
               ${(selectedUser || selectedGroup) ? "hidden md:flex" : "w-full md:flex"}
             `}

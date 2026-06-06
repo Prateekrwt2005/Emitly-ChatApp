@@ -70,6 +70,12 @@ export const getMessagesByUserId = async (req, res) => {
             { isViewOnce: { $ne: true } },
             { isViewOnce: true, isViewed: false }
           ]
+        },
+        {
+          $or: [
+            { status: { $ne: "scheduled" } },
+            { status: "scheduled", senderId: myId }
+          ]
         }
       ]
     })
@@ -86,12 +92,12 @@ export const getMessagesByUserId = async (req, res) => {
 // ================= SEND MESSAGE =================
 export const sendMessage = async (req, res) => {
   try {
-    const { text, image, audio, replyTo, isViewOnce } = req.body;
+    const { text, image, audio, replyTo, isViewOnce, scheduledAt, isSecret, poll } = req.body;
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
 
-    if (!text && !image && !audio) {
-      return res.status(400).json({ message: "Text, image, or audio is required." });
+    if (!text && !image && !audio && !poll) {
+      return res.status(400).json({ message: "Text, image, audio, or poll is required." });
     }
 
     if (senderId.equals(receiverId)) {
@@ -135,7 +141,9 @@ export const sendMessage = async (req, res) => {
     const receiverSocketId = getReceiverSocketId(receiverId);
 
     let status = "sent";
-    if (receiverSocketId) {
+    if (scheduledAt) {
+      status = "scheduled";
+    } else if (receiverSocketId) {
       status = "delivered";
     }
 
@@ -148,6 +156,9 @@ export const sendMessage = async (req, res) => {
       status,
       replyTo: replyTo || undefined,
       isViewOnce: !!isViewOnce,
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+      isSecret: !!isSecret,
+      poll: poll || undefined,
     });
 
     if (replyTo) {
@@ -155,7 +166,7 @@ export const sendMessage = async (req, res) => {
     }
 
     // ================= REALTIME =================
-    if (receiverSocketId) {
+    if (status !== "scheduled" && receiverSocketId) {
       io.to(receiverSocketId).emit("newMessage", newMessage);
 
       const senderSocketId = getReceiverSocketId(senderId);

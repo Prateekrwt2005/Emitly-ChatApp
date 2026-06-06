@@ -24,8 +24,14 @@ export const startScheduler = () => {
         // Check if receiver is online
         const receiverSocketId = msg.receiverId ? getReceiverSocketId(msg.receiverId) : null;
         
-        msg.status = receiverSocketId ? "delivered" : "sent";
-        await msg.save();
+        const newStatus = receiverSocketId ? "delivered" : "sent";
+        const newCreatedAt = msg.scheduledAt || new Date();
+
+        // Bypass Mongoose timestamps validation to update createdAt
+        await Message.collection.updateOne(
+          { _id: msg._id },
+          { $set: { status: newStatus, createdAt: newCreatedAt } }
+        );
 
         if (msg.groupId) {
           // Group Broadcast

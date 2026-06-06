@@ -3,7 +3,7 @@ import { XIcon, CameraIcon, Loader2Icon } from "lucide-react";
 import { useChatStore } from "../store/useChatStore";
 
 function GroupModal({ isOpen, onClose }) {
-  const { allContacts, getAllContacts, createGroup } = useChatStore();
+  const { chats, getMyChatPartners, createGroup } = useChatStore();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [avatar, setAvatar] = useState("");
@@ -13,9 +13,9 @@ function GroupModal({ isOpen, onClose }) {
 
   useEffect(() => {
     if (isOpen) {
-      getAllContacts();
+      getMyChatPartners();
     }
-  }, [isOpen, getAllContacts]);
+  }, [isOpen, getMyChatPartners]);
 
   if (!isOpen) return null;
 
@@ -139,12 +139,12 @@ function GroupModal({ isOpen, onClose }) {
               Select Members ({selectedMembers.length})
             </label>
             <div className="max-h-40 overflow-y-auto border border-white/[0.06] rounded-xl divide-y divide-white/[0.04] bg-white/[0.01]">
-              {allContacts.length === 0 ? (
+              {chats.length === 0 ? (
                 <div className="p-4 text-center text-xs text-zinc-600">
-                  No contacts available to add
+                  No active chats available to add
                 </div>
               ) : (
-                allContacts.map((contact) => {
+                chats.map((contact) => {
                   const isChecked = selectedMembers.includes(contact._id);
                   return (
                     <div

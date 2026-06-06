@@ -223,9 +223,48 @@ function ChatContainer() {
     return () => unsubscribeFromMessages();
   }, [selectedUser, selectedGroup, socket, isSocketConnected, subscribeToMessages, unsubscribeFromMessages]);
 
+  const prevMessagesLengthRef = useRef(messages.length);
+  const prevActiveChatIdRef = useRef(null);
+  const activeChatId = selectedUser?._id || selectedGroup?._id;
+
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, replyToMessage]);
+    if (!activeChatId) return;
+
+    // Chat switched -> scroll to bottom instantly
+    if (activeChatId !== prevActiveChatIdRef.current) {
+      prevActiveChatIdRef.current = activeChatId;
+      prevMessagesLengthRef.current = messages.length;
+      scrollToBottom();
+      return;
+    }
+
+    // New message arrived or sent
+    if (messages.length > prevMessagesLengthRef.current) {
+      if (prevMessagesLengthRef.current === 0) {
+        // Initial load of messages -> scroll to bottom
+        scrollToBottom();
+      } else {
+        const lastMsg = messages[messages.length - 1];
+        const lastMsgSenderId = lastMsg.senderId?._id || lastMsg.senderId;
+        const isMe = lastMsgSenderId === authUser?._id;
+
+        if (isMe) {
+          scrollToBottom();
+        } else {
+          // Only scroll if already near bottom
+          const container = scrollContainerRef.current;
+          if (container) {
+            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 350;
+            if (isNearBottom) {
+              scrollToBottom();
+            }
+          }
+        }
+      }
+    }
+
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages, activeChatId, authUser]);
 
   useEffect(() => {
     if (pinnedMessages.length > 0 && currentPinIndex >= pinnedMessages.length) {
@@ -287,7 +326,7 @@ function ChatContainer() {
   if (!activeChat) return null;
 
   const scrollToBottom = () => {
-    messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    messageEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
   };
 
   const scrollToMessage = (msgId) => {
@@ -303,9 +342,11 @@ function ChatContainer() {
 
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
-    // Show button if scrolled up by more than 300px
     const isScrolledUp = scrollHeight - scrollTop - clientHeight > 300;
-    setShowScrollBtn(isScrolledUp);
+    setShowScrollBtn((prev) => {
+      if (prev !== isScrolledUp) return isScrolledUp;
+      return prev;
+    });
   };
 
   const handleContainerClick = (e) => {
@@ -427,13 +468,33 @@ function ChatContainer() {
 
     return parts.map((part, idx) => {
       if (part.startsWith("**") && part.endsWith("**")) {
-        return <strong key={idx} className="font-bold text-white">{highlight(part.slice(2, -2))}</strong>;
+        return (
+          <strong key={idx} className={`font-bold ${isMe ? "text-black" : "text-white"}`}>
+            {highlight(part.slice(2, -2))}
+          </strong>
+        );
       } else if ((part.startsWith("*") && part.endsWith("*")) || (part.startsWith("_") && part.endsWith("_"))) {
-        return <em key={idx} className="italic text-zinc-300">{highlight(part.slice(1, -1))}</em>;
+        return (
+          <em key={idx} className={`italic ${isMe ? "text-zinc-800" : "text-zinc-300"}`}>
+            {highlight(part.slice(1, -1))}
+          </em>
+        );
       } else if (part.startsWith("~~") && part.endsWith("~~")) {
-        return <del key={idx} className="line-through text-zinc-500">{highlight(part.slice(2, -2))}</del>;
+        return (
+          <del key={idx} className={`line-through ${isMe ? "text-zinc-400" : "text-zinc-500"}`}>
+            {highlight(part.slice(2, -2))}
+          </del>
+        );
       } else if (part.startsWith("`") && part.endsWith("`")) {
-        return <code key={idx} className="font-mono text-xs bg-black/40 px-1.5 py-0.5 rounded text-zinc-200 border border-white/5">{highlight(part.slice(1, -1))}</code>;
+        return (
+          <code key={idx} className={`font-mono text-xs px-1.5 py-0.5 rounded border ${
+            isMe 
+              ? "bg-black/5 text-zinc-800 border-black/5" 
+              : "bg-black/40 text-zinc-200 border-white/5"
+          }`}>
+            {highlight(part.slice(1, -1))}
+          </code>
+        );
       }
       return <span key={idx}>{highlight(part)}</span>;
     });
@@ -538,7 +599,7 @@ function ChatContainer() {
         ref={scrollContainerRef}
         onScroll={handleScroll}
         onClick={handleContainerClick}
-        className={`flex-1 px-3 py-4 md:px-4 overflow-y-auto scroll-smooth relative transition-all duration-300 ${getWallpaperClass()}`}
+        className={`flex-1 px-3 py-4 md:px-4 overflow-y-auto overflow-x-hidden scroll-smooth relative ${getWallpaperClass()}`}
       >
         {/* Sticky Chat search panel */}
         {isMsgSearchOpen && (
@@ -601,19 +662,19 @@ function ChatContainer() {
                 const isSelected = selectedMessage?._id === msg._id;
                 const isHighlighted = highlightedMsgId === msg._id;
 
-                let stateClasses = "opacity-100 scale-100";
+                let stateClasses = "opacity-100";
                 if (hasSelection) {
                   stateClasses = isSelected 
-                    ? "opacity-100 scale-[1.01] z-10" 
-                    : "opacity-30 blur-[0.2px] scale-[0.99]";
+                    ? "opacity-100 z-10" 
+                    : "opacity-35 blur-[0.1px]";
                 } else if (hasQuery && !isMatch) {
-                  stateClasses = "opacity-30 blur-[0.4px]";
+                  stateClasses = "opacity-35 blur-[0.2px]";
                 }
 
                 const isHistorical = msg.createdAt ? (new Date(msg.createdAt).getTime() < mountedAtRef.current - 1000) : false;
 
                 // Calculate total votes for poll
-                const totalVotes = msg.poll ? msg.poll.options.reduce((sum, opt) => sum + (opt.votes?.length || 0), 0) : 0;
+                const totalVotes = (msg.poll && msg.poll.question) ? msg.poll.options.reduce((sum, opt) => sum + (opt.votes?.length || 0), 0) : 0;
 
                 return (
                   <motion.div
@@ -629,7 +690,7 @@ function ChatContainer() {
                     onTouchStart={() => startPressTimer(msg)}
                     onTouchEnd={cancelPressTimer}
                     onDoubleClick={() => setSelectedMessage(msg)}
-                    className={`flex flex-col relative transition-all duration-300 ${stateClasses} ${isMe ? "items-end" : "items-start"} ${activeReactions.length > 0 ? "mb-2.5" : ""}`}
+                    className={`flex flex-col relative transition-[opacity,filter] duration-150 ease-out ${stateClasses} ${isMe ? "items-end" : "items-start"} ${activeReactions.length > 0 ? "mb-2.5" : ""}`}
                   >
                     <div className={`flex relative ${isMe ? "justify-end" : "justify-start"} w-full`}>
                       {/* Emojis Reactions Popover (renders above the selected message bubble) */}
@@ -654,7 +715,7 @@ function ChatContainer() {
                       )}
 
                        <div
-                        className={`relative max-w-[85%] md:max-w-[72%] rounded-2xl text-[14px] leading-relaxed shadow-sm cursor-pointer select-text
+                        className={`relative max-w-[85%] md:max-w-[72%] rounded-2xl text-[14px] leading-relaxed shadow-sm cursor-pointer select-text break-words overflow-hidden
                           ${(msg.image || msg.audio) && !msg.text ? "p-1 pb-1.5" : "px-3.5 py-2"}
                           ${isMe
                             ? "bg-white text-black rounded-br-[4px] shadow-[0_4px_12px_rgba(255,255,255,0.03)]"
@@ -663,7 +724,7 @@ function ChatContainer() {
                           ${isSelected ? "ring-2 ring-zinc-500/50" : ""}
                           ${isHighlighted ? "ring-2 ring-white/50 scale-[1.02]" : ""}
                           ${searchMatches[activeMatchIndex]?._id === msg._id ? "ring-2 ring-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.3)] scale-[1.01]" : ""}
-                          transition-all duration-300`}
+                          transition-[box-shadow,transform] duration-150 ease-out`}
                       >
                         {/* Group Sender Name */}
                         {!isMe && msg.groupId && (
@@ -722,8 +783,15 @@ function ChatContainer() {
 
                             {/* POLL CARD */}
                             {msg.poll && msg.poll.question && (
-                              <div className="poll-card my-1 p-3 bg-black/25 rounded-xl border border-white/5 text-left min-w-[220px] sm:min-w-[260px] select-none">
-                                <h4 className="text-xs sm:text-sm font-semibold text-white mb-3 leading-snug">
+                              <div className={`poll-card my-1.5 p-3.5 rounded-xl border text-left min-w-[220px] sm:min-w-[260px] select-none
+                                ${isMe 
+                                  ? "bg-black/[0.03] border-black/5" 
+                                  : "bg-black/30 border-white/5"
+                                }`}
+                              >
+                                <h4 className={`text-xs sm:text-sm font-semibold mb-3 leading-snug
+                                  ${isMe ? "text-zinc-900" : "text-white"}`}
+                                >
                                   {msg.poll.question}
                                 </h4>
                                 <div className="space-y-2">
@@ -738,51 +806,68 @@ function ChatContainer() {
                                           e.stopPropagation();
                                           votePoll(msg._id, opt._id);
                                         }}
-                                        className={`relative w-full text-left p-2 rounded-lg border border-white/5 overflow-hidden transition-all hover:bg-white/5 active:scale-[0.99] flex items-center justify-between ${
-                                          hasVoted ? "border-white/20 bg-white/5" : ""
-                                        }`}
+                                        className={`relative w-full text-left p-2 rounded-lg border overflow-hidden transition-all active:scale-[0.99] flex items-center justify-between
+                                          ${isMe 
+                                            ? `border-black/5 hover:bg-black/[0.04] ${hasVoted ? "border-[var(--accent-color)]/30 bg-[var(--accent-color)]/[0.03] hover:bg-[var(--accent-color)]/[0.05]" : ""}` 
+                                            : `border-white/5 hover:bg-white/5 ${hasVoted ? "border-[var(--accent-color)]/40 bg-[var(--accent-color)]/10 hover:bg-[var(--accent-color)]/15" : ""}`
+                                          }`}
                                       >
                                         {/* Progress fill */}
                                         <div
-                                          className="absolute inset-y-0 left-0 bg-white/10 transition-all duration-500 ease-out"
+                                          className={`absolute inset-y-0 left-0 transition-all duration-500 ease-out
+                                            ${isMe ? "bg-[var(--accent-color)]/[0.08]" : "bg-[var(--accent-color)]/20"}`}
                                           style={{ width: `${percent}%` }}
                                         />
-                                        <span className="relative z-10 text-xs text-zinc-300 font-medium truncate flex-1 pr-2">
+                                        <span className={`relative z-10 text-xs font-semibold truncate flex-1 pr-2
+                                          ${isMe ? "text-zinc-800" : "text-zinc-200"}`}
+                                        >
                                           {opt.text}
                                         </span>
-                                        <span className="relative z-10 text-[10px] font-mono text-zinc-500 shrink-0">
+                                        <span className={`relative z-10 text-[10px] font-mono font-medium shrink-0
+                                          ${isMe ? "text-zinc-500" : "text-zinc-400"}`}
+                                        >
                                           {percent}% ({votesCount})
                                         </span>
                                       </button>
                                     );
                                   })}
                                 </div>
-                                <div className="mt-3 text-[10px] text-zinc-500 font-medium text-left">
+                                <div className={`mt-3 text-[10px] font-medium text-left
+                                  ${isMe ? "text-zinc-500" : "text-zinc-500"}`}
+                                >
                                   {totalVotes} vote{totalVotes === 1 ? "" : "s"} • {msg.poll.isAnonymous ? "Anonymous Poll" : "Public Poll"}
                                 </div>
                               </div>
                             )}
 
                             {/* TEXT (Parsed Markdown) */}
-                            {msg.text && !msg.poll && parseMarkdown(msg.text, isMe)}
+                            {msg.text && (!msg.poll || !msg.poll.question) && parseMarkdown(msg.text, isMe)}
                           </>
                         )}
 
                         {/* TIME + STATUS */}
                         <div className={`flex items-center justify-end gap-1 mt-1 text-[10px] select-none ${isMe ? "text-zinc-600" : "text-zinc-400"}`}>
-                          {msg.isPinned && (
-                            <Pin className={`w-2.5 h-2.5 rotate-45 mr-0.5 ${isMe ? "text-zinc-500" : "text-zinc-400"}`} />
-                          )}
-                          {new Date(msg.createdAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                          {isMe && !msg.groupId && (
-                            <span className="ml-0.5 flex items-center">
-                              {msg.status === "sent" && <Tick color="#71717a" />}
-                              {msg.status === "delivered" && <DoubleTick color="#71717a" />}
-                              {msg.status === "seen" && <DoubleTick color="var(--accent-color)" />}
+                          {msg.status === "scheduled" ? (
+                            <span className="text-amber-500 font-semibold flex items-center gap-1 select-none">
+                              🕒 Scheduled for {new Date(msg.scheduledAt).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' })}
                             </span>
+                          ) : (
+                            <>
+                              {msg.isPinned && (
+                                <Pin className={`w-2.5 h-2.5 rotate-45 mr-0.5 ${isMe ? "text-zinc-500" : "text-zinc-400"}`} />
+                              )}
+                              {new Date(msg.createdAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                              {isMe && !msg.groupId && (
+                                <span className="ml-0.5 flex items-center">
+                                  {msg.status === "sent" && <Tick color="#71717a" />}
+                                  {msg.status === "delivered" && <DoubleTick color="#71717a" />}
+                                  {msg.status === "seen" && <DoubleTick color="var(--accent-color)" />}
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
 

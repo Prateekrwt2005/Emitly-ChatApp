@@ -196,7 +196,7 @@ function MessageInput() {
 
   // Schedule handler
   const handleSetSchedule = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!scheduleDate || !scheduleTime) {
       toast.error("Please specify both date and time");
       return;
@@ -213,7 +213,7 @@ function MessageInput() {
   if (!activeChat) return null;
 
   return (
-    <div className="px-3 py-4 md:px-4 bg-[#0a0a0a] border-t border-white/[0.06]">
+    <div className="relative z-30 px-3 py-4 md:px-4 bg-[#0a0a0a] border-t border-white/[0.06]">
       {/* REPLY PREVIEW */}
       {replyToMessage && (
         <div className="w-full max-w-full px-1 md:px-2 mb-2 bg-[#121214] border border-white/[0.06] rounded-xl px-3 py-2 flex items-center justify-between gap-3 animate-fadeIn">
@@ -372,108 +372,112 @@ function MessageInput() {
           ) : (
             /* NORMAL VIEW */
             <>
-              {/* CAMERA BUTTON */}
-              <button
-                type="button"
-                onClick={() => setIsCameraOpen(true)}
-                disabled={isBlockedByMe}
-                className="p-2 md:p-1.5 rounded-lg text-[#444] hover:text-white transition disabled:opacity-20 disabled:hover:text-[#444]"
-                title="Camera Photo"
-              >
-                <CameraIcon className="w-5 h-5" />
-              </button>
-
-              {/* IMAGE BUTTON */}
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isBlockedByMe}
-                className={`p-2 md:p-1.5 rounded-lg transition disabled:opacity-20 ${
-                  imagePreview ? "text-white" : "text-[#444] hover:text-white"
-                }`}
-                title="Attach Image"
-              >
-                <ImageIcon className="w-5 h-5" />
-              </button>
-
-              {/* POLL CREATOR TRIGGER */}
-              <button
-                type="button"
-                onClick={() => setIsPollOpen(true)}
-                disabled={isBlockedByMe}
-                className="p-2 md:p-1.5 rounded-lg text-[#444] hover:text-white transition disabled:opacity-20 disabled:hover:text-[#444]"
-                title="Create Poll"
-              >
-                <BarChart2Icon className="w-5 h-5" />
-              </button>
-
-              {/* SCHEDULE DISPATCH TRIGGER */}
-              <div ref={schedulePickerRef} className="relative flex items-center">
+              {/* LEFT ACTIONS GROUP */}
+              <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+                {/* CAMERA BUTTON */}
                 <button
                   type="button"
-                  onClick={() => setShowSchedulePicker(!showSchedulePicker)}
+                  onClick={() => setIsCameraOpen(true)}
                   disabled={isBlockedByMe}
-                  className={`p-2 md:p-1.5 rounded-lg transition disabled:opacity-20 ${
-                    scheduledAt ? "text-amber-500 animate-pulse" : "text-[#444] hover:text-white"
-                  }`}
-                  title="Schedule Message"
+                  className="p-1.5 rounded-lg text-[#444] hover:text-white transition disabled:opacity-20 disabled:hover:text-[#444]"
+                  title="Camera Photo"
                 >
-                  <CalendarIcon className="w-5 h-5" />
+                  <CameraIcon className="w-4 h-4" />
                 </button>
-                {showSchedulePicker && (
-                  <div className="absolute bottom-full mb-3 right-0 bg-[#0d0d0d] border border-white/10 rounded-2xl p-4 shadow-2xl z-40 min-w-[240px] flex flex-col gap-3 animate-fadeIn">
-                    <span className="text-xs font-semibold text-zinc-300 text-left">Schedule Message</span>
-                    <form onSubmit={handleSetSchedule} className="flex flex-col gap-2">
-                      <input
-                        type="date"
-                        required
-                        value={scheduleDate}
-                        onChange={(e) => setScheduleDate(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-white/20"
-                      />
-                      <input
-                        type="time"
-                        required
-                        value={scheduleTime}
-                        onChange={(e) => setScheduleTime(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-white/20"
-                      />
-                      <div className="flex gap-2 mt-1">
-                        <button
-                          type="button"
-                          onClick={() => setShowSchedulePicker(false)}
-                          className="flex-1 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-semibold text-white transition-all"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          className="flex-1 py-1.5 bg-white text-black hover:bg-zinc-200 rounded-lg text-[10px] font-semibold transition-all"
-                        >
-                          Set
-                        </button>
+
+                {/* IMAGE BUTTON */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isBlockedByMe}
+                  className={`p-1.5 rounded-lg transition disabled:opacity-20 ${
+                    imagePreview ? "text-white" : "text-[#444] hover:text-white"
+                  }`}
+                  title="Attach Image"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                </button>
+
+                {/* POLL CREATOR TRIGGER */}
+                <button
+                  type="button"
+                  onClick={() => setIsPollOpen(true)}
+                  disabled={isBlockedByMe}
+                  className="p-1.5 rounded-lg text-[#444] hover:text-white transition disabled:opacity-20 disabled:hover:text-[#444]"
+                  title="Create Poll"
+                >
+                  <BarChart2Icon className="w-4 h-4" />
+                </button>
+
+                {/* SCHEDULE DISPATCH TRIGGER */}
+                <div ref={schedulePickerRef} className="relative flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowSchedulePicker(!showSchedulePicker)}
+                    disabled={isBlockedByMe}
+                    className={`p-1.5 rounded-lg transition disabled:opacity-20 ${
+                      scheduledAt ? "text-amber-500 animate-pulse" : "text-[#444] hover:text-white"
+                    }`}
+                    title="Schedule Message"
+                  >
+                    <CalendarIcon className="w-4 h-4" />
+                  </button>
+                  {showSchedulePicker && (
+                    <div className="absolute bottom-full mb-3 left-0 bg-[#0d0d0d] border border-white/10 rounded-2xl p-4 shadow-2xl z-40 min-w-[240px] flex flex-col gap-3 animate-fadeIn">
+                      <span className="text-xs font-semibold text-zinc-300 text-left">Schedule Message</span>
+                      <div className="flex flex-col gap-2">
+                        <input
+                          type="date"
+                          required
+                          value={scheduleDate}
+                          onChange={(e) => setScheduleDate(e.target.value)}
+                          className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-white/20"
+                        />
+                        <input
+                          type="time"
+                          required
+                          value={scheduleTime}
+                          onChange={(e) => setScheduleTime(e.target.value)}
+                          className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-white/20"
+                        />
+                        <div className="flex gap-2 mt-1">
+                          <button
+                            type="button"
+                            onClick={() => setShowSchedulePicker(false)}
+                            className="flex-1 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-semibold text-white transition-all"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSetSchedule}
+                            className="flex-1 py-1.5 bg-white text-black hover:bg-zinc-200 rounded-lg text-[10px] font-semibold transition-all"
+                          >
+                            Set
+                          </button>
+                        </div>
                       </div>
-                    </form>
-                  </div>
-                )}
-              </div>
+                    </div>
+                  )}
+                </div>
 
-              {/* EMOJI PICKER TRIGGER */}
-              <div ref={emojiPickerRef} className="relative flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
-                  disabled={isBlockedByMe}
-                  className={`p-2 md:p-1.5 rounded-lg transition disabled:opacity-20 ${
-                    isEmojiPickerOpen ? "text-white" : "text-[#444] hover:text-white"
-                  }`}
-                  title="Choose Emoji"
-                >
-                  <SmileIcon className="w-5 h-5" />
-                </button>
-                {isEmojiPickerOpen && (
-                  <EmojiPicker onSelect={(emoji) => setText((prev) => prev + emoji)} />
-                )}
+                {/* EMOJI PICKER TRIGGER */}
+                <div ref={emojiPickerRef} className="relative flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
+                    disabled={isBlockedByMe}
+                    className={`p-1.5 rounded-lg transition disabled:opacity-20 ${
+                      isEmojiPickerOpen ? "text-white" : "text-[#444] hover:text-white"
+                    }`}
+                    title="Choose Emoji"
+                  >
+                    <SmileIcon className="w-4 h-4" />
+                  </button>
+                  {isEmojiPickerOpen && (
+                    <EmojiPicker onSelect={(emoji) => setText((prev) => prev + emoji)} />
+                  )}
+                </div>
               </div>
 
               {/* TEXT INPUT */}
@@ -488,45 +492,47 @@ function MessageInput() {
                   handleTyping();
                 }}
                 placeholder={isBlockedByMe ? "You have blocked this user" : "Message..."}
-                className="flex-1 bg-transparent outline-none text-base md:text-sm text-[#e0e0e0] placeholder:text-[#444] disabled:opacity-50"
+                className="flex-1 bg-transparent outline-none text-base md:text-sm text-[#e0e0e0] placeholder:text-[#444] disabled:opacity-50 px-1 sm:px-2"
               />
 
-              {/* VIEW-ONCE TOGGLE */}
-              <button
-                type="button"
-                onClick={() => setIsViewOnce(!isViewOnce)}
-                disabled={isBlockedByMe}
-                className={`p-2 md:p-1.5 rounded-lg transition shrink-0 disabled:opacity-20 ${
-                  isViewOnce ? "text-amber-500" : "text-[#444] hover:text-white"
-                }`}
-                title={isViewOnce ? "View-once enabled" : "Enable view-once"}
-              >
-                {isViewOnce ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-
-              {/* AUDIO RECORDING TRIGGER */}
-              {!text.trim() && !imagePreview && (
+              {/* RIGHT ACTIONS GROUP */}
+              <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+                {/* VIEW-ONCE TOGGLE */}
                 <button
                   type="button"
-                  onClick={startRecording}
+                  onClick={() => setIsViewOnce(!isViewOnce)}
                   disabled={isBlockedByMe}
-                  className="p-2 md:p-1.5 rounded-lg text-[#444] hover:text-white transition disabled:opacity-20 disabled:hover:text-[#444]"
-                  title="Record Voice Note"
+                  className={`p-1.5 rounded-lg transition shrink-0 disabled:opacity-20 ${
+                    isViewOnce ? "text-amber-500" : "text-[#444] hover:text-white"
+                  }`}
+                  title={isViewOnce ? "View-once enabled" : "Enable view-once"}
                 >
-                  <MicIcon className="w-5 h-5" />
+                  {isViewOnce ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
-              )}
 
-              {/* SEND BUTTON */}
-              {(text.trim() || imagePreview) && (
-                <button
-                  type="submit"
-                  className="p-2 md:p-1.5 rounded-lg bg-white text-black hover:bg-[#e0e0e0]
-                  transition active:scale-95"
-                >
-                  <SendIcon className="w-4 h-4" />
-                </button>
-              )}
+                {/* AUDIO RECORDING TRIGGER */}
+                {!text.trim() && !imagePreview && (
+                  <button
+                    type="button"
+                    onClick={startRecording}
+                    disabled={isBlockedByMe}
+                    className="p-1.5 rounded-lg text-[#444] hover:text-white transition disabled:opacity-20 disabled:hover:text-[#444]"
+                    title="Record Voice Note"
+                  >
+                    <MicIcon className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* SEND BUTTON */}
+                {(text.trim() || imagePreview) && (
+                  <button
+                    type="submit"
+                    className="p-1.5 rounded-lg bg-white text-black hover:bg-[#e0e0e0] transition active:scale-95"
+                  >
+                    <SendIcon className="w-4 h-4 fill-black" />
+                  </button>
+                )}
+              </div>
             </>
           )}
 

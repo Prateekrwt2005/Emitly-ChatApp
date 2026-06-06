@@ -92,8 +92,15 @@ export const getGroups = async (req, res) => {
 export const getGroupMessages = async (req, res) => {
   try {
     const { id: groupId } = req.params;
+    const myId = req.user._id;
 
-    const messages = await Message.find({ groupId })
+    const messages = await Message.find({
+      groupId,
+      $or: [
+        { status: { $ne: "scheduled" } },
+        { status: "scheduled", senderId: myId }
+      ]
+    })
       .populate("senderId", "-password")
       .populate("replyTo")
       .sort({ createdAt: 1 });
@@ -108,12 +115,12 @@ export const getGroupMessages = async (req, res) => {
 // ================= SEND GROUP MESSAGE =================
 export const sendGroupMessage = async (req, res) => {
   try {
-    const { text, image, audio, replyTo } = req.body;
+    const { text, image, audio, replyTo, scheduledAt, poll } = req.body;
     const { id: groupId } = req.params;
     const senderId = req.user._id;
 
-    if (!text && !image && !audio) {
-      return res.status(400).json({ message: "Text, image, or audio is required." });
+    if (!text && !image && !audio && !poll) {
+      return res.status(400).json({ message: "Text, image, audio, or poll is required." });
     }
 
     const groupExists = await Group.exists({ _id: groupId });
@@ -137,14 +144,18 @@ export const sendGroupMessage = async (req, res) => {
       audioUrl = uploadResponse.secure_url;
     }
 
+    const status = scheduledAt ? "scheduled" : "sent";
+
     let newMessage = await Message.create({
       senderId,
       groupId,
       text,
       image: imageUrl,
       audio: audioUrl,
-      status: "sent",
+      status,
       replyTo: replyTo || undefined,
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+      poll: poll || undefined,
     });
 
     newMessage = await Message.findById(newMessage._id)
@@ -152,11 +163,54 @@ export const sendGroupMessage = async (req, res) => {
       .populate("replyTo");
 
     // Realtime broadcast to group socket room
-    io.to(`group_${groupId}`).emit("newMessage", newMessage);
+    if (status !== "scheduled") {
+      io.to(`group_${groupId}`).emit("newMessage", newMessage);
+    }
 
     res.status(201).json(newMessage);
   } catch (error) {
     console.error("Error in sendGroupMessage controller:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ================= DELETE GROUP =================
+export const deleteGroup = async (req, res) => {
+  try {
+    const { id: groupId } = req.params;
+    const userId = req.user._id;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: "Group not found." });
+    }
+
+    // Verify user is an admin of this group
+    const isAdmin = group.members.some(
+      (m) => m.userId.toString() === userId.toString() && m.role === "admin"
+    );
+
+    if (!isAdmin) {
+      return res.status(403).json({ message: "Unauthorized. Only group admins can delete the channel." });
+    }
+
+    // Delete all messages associated with this group
+    await Message.deleteMany({ groupId });
+
+    // Delete the group itself
+    await Group.findByIdAndDelete(groupId);
+
+    // Notify all members via sockets that the group is deleted
+    group.members.forEach((m) => {
+      const socketId = getReceiverSocketId(m.userId);
+      if (socketId) {
+        io.to(socketId).emit("groupDeleted", { groupId });
+      }
+    });
+
+    res.status(200).json({ message: "Group deleted successfully.", groupId });
+  } catch (error) {
+    console.error("Error in deleteGroup controller:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
