@@ -287,7 +287,7 @@ function ChatContainer() {
   if (!activeChat) return null;
 
   const scrollToBottom = () => {
-    messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    messageEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
   };
 
   const scrollToMessage = (msgId) => {
@@ -558,7 +558,7 @@ function ChatContainer() {
         ref={scrollContainerRef}
         onScroll={handleScroll}
         onClick={handleContainerClick}
-        className={`flex-1 px-3 py-4 md:px-4 overflow-y-auto scroll-smooth relative transition-all duration-300 ${getWallpaperClass()}`}
+        className={`flex-1 px-3 py-4 md:px-4 overflow-y-auto scroll-smooth relative ${getWallpaperClass()}`}
       >
         {/* Sticky Chat search panel */}
         {isMsgSearchOpen && (
@@ -621,13 +621,13 @@ function ChatContainer() {
                 const isSelected = selectedMessage?._id === msg._id;
                 const isHighlighted = highlightedMsgId === msg._id;
 
-                let stateClasses = "opacity-100 scale-100";
+                let stateClasses = "opacity-100";
                 if (hasSelection) {
                   stateClasses = isSelected 
-                    ? "opacity-100 scale-[1.01] z-10" 
-                    : "opacity-30 blur-[0.2px] scale-[0.99]";
+                    ? "opacity-100 z-10" 
+                    : "opacity-35 blur-[0.1px]";
                 } else if (hasQuery && !isMatch) {
-                  stateClasses = "opacity-30 blur-[0.4px]";
+                  stateClasses = "opacity-35 blur-[0.2px]";
                 }
 
                 const isHistorical = msg.createdAt ? (new Date(msg.createdAt).getTime() < mountedAtRef.current - 1000) : false;
@@ -649,7 +649,7 @@ function ChatContainer() {
                     onTouchStart={() => startPressTimer(msg)}
                     onTouchEnd={cancelPressTimer}
                     onDoubleClick={() => setSelectedMessage(msg)}
-                    className={`flex flex-col relative transition-all duration-300 ${stateClasses} ${isMe ? "items-end" : "items-start"} ${activeReactions.length > 0 ? "mb-2.5" : ""}`}
+                    className={`flex flex-col relative transition-[opacity,filter] duration-150 ease-out ${stateClasses} ${isMe ? "items-end" : "items-start"} ${activeReactions.length > 0 ? "mb-2.5" : ""}`}
                   >
                     <div className={`flex relative ${isMe ? "justify-end" : "justify-start"} w-full`}>
                       {/* Emojis Reactions Popover (renders above the selected message bubble) */}
@@ -683,7 +683,7 @@ function ChatContainer() {
                           ${isSelected ? "ring-2 ring-zinc-500/50" : ""}
                           ${isHighlighted ? "ring-2 ring-white/50 scale-[1.02]" : ""}
                           ${searchMatches[activeMatchIndex]?._id === msg._id ? "ring-2 ring-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.3)] scale-[1.01]" : ""}
-                          transition-all duration-300`}
+                          transition-[box-shadow,transform] duration-150 ease-out`}
                       >
                         {/* Group Sender Name */}
                         {!isMe && msg.groupId && (

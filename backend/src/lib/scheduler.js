@@ -25,6 +25,7 @@ export const startScheduler = () => {
         const receiverSocketId = msg.receiverId ? getReceiverSocketId(msg.receiverId) : null;
         
         msg.status = receiverSocketId ? "delivered" : "sent";
+        msg.createdAt = msg.scheduledAt || new Date(); // Update createdAt to the scheduled/delivery time so it sorts correctly at the bottom of the chat
         await msg.save();
 
         if (msg.groupId) {
