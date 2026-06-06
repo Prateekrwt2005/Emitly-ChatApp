@@ -783,8 +783,15 @@ function ChatContainer() {
 
                             {/* POLL CARD */}
                             {msg.poll && msg.poll.question && (
-                              <div className="poll-card my-1 p-3 bg-black/25 rounded-xl border border-white/5 text-left min-w-[220px] sm:min-w-[260px] select-none">
-                                <h4 className="text-xs sm:text-sm font-semibold text-white mb-3 leading-snug">
+                              <div className={`poll-card my-1.5 p-3.5 rounded-xl border text-left min-w-[220px] sm:min-w-[260px] select-none
+                                ${isMe 
+                                  ? "bg-black/[0.03] border-black/5" 
+                                  : "bg-black/30 border-white/5"
+                                }`}
+                              >
+                                <h4 className={`text-xs sm:text-sm font-semibold mb-3 leading-snug
+                                  ${isMe ? "text-zinc-900" : "text-white"}`}
+                                >
                                   {msg.poll.question}
                                 </h4>
                                 <div className="space-y-2">
@@ -799,26 +806,35 @@ function ChatContainer() {
                                           e.stopPropagation();
                                           votePoll(msg._id, opt._id);
                                         }}
-                                        className={`relative w-full text-left p-2 rounded-lg border border-white/5 overflow-hidden transition-all hover:bg-white/5 active:scale-[0.99] flex items-center justify-between ${
-                                          hasVoted ? "border-white/20 bg-white/5" : ""
-                                        }`}
+                                        className={`relative w-full text-left p-2 rounded-lg border overflow-hidden transition-all active:scale-[0.99] flex items-center justify-between
+                                          ${isMe 
+                                            ? `border-black/5 hover:bg-black/[0.04] ${hasVoted ? "border-[var(--accent-color)]/30 bg-[var(--accent-color)]/[0.03] hover:bg-[var(--accent-color)]/[0.05]" : ""}` 
+                                            : `border-white/5 hover:bg-white/5 ${hasVoted ? "border-[var(--accent-color)]/40 bg-[var(--accent-color)]/10 hover:bg-[var(--accent-color)]/15" : ""}`
+                                          }`}
                                       >
                                         {/* Progress fill */}
                                         <div
-                                          className="absolute inset-y-0 left-0 bg-white/10 transition-all duration-500 ease-out"
+                                          className={`absolute inset-y-0 left-0 transition-all duration-500 ease-out
+                                            ${isMe ? "bg-[var(--accent-color)]/[0.08]" : "bg-[var(--accent-color)]/20"}`}
                                           style={{ width: `${percent}%` }}
                                         />
-                                        <span className="relative z-10 text-xs text-zinc-300 font-medium truncate flex-1 pr-2">
+                                        <span className={`relative z-10 text-xs font-semibold truncate flex-1 pr-2
+                                          ${isMe ? "text-zinc-800" : "text-zinc-200"}`}
+                                        >
                                           {opt.text}
                                         </span>
-                                        <span className="relative z-10 text-[10px] font-mono text-zinc-500 shrink-0">
+                                        <span className={`relative z-10 text-[10px] font-mono font-medium shrink-0
+                                          ${isMe ? "text-zinc-500" : "text-zinc-400"}`}
+                                        >
                                           {percent}% ({votesCount})
                                         </span>
                                       </button>
                                     );
                                   })}
                                 </div>
-                                <div className="mt-3 text-[10px] text-zinc-500 font-medium text-left">
+                                <div className={`mt-3 text-[10px] font-medium text-left
+                                  ${isMe ? "text-zinc-500" : "text-zinc-500"}`}
+                                >
                                   {totalVotes} vote{totalVotes === 1 ? "" : "s"} • {msg.poll.isAnonymous ? "Anonymous Poll" : "Public Poll"}
                                 </div>
                               </div>
