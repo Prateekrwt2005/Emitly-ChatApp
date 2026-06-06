@@ -123,6 +123,20 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  deleteGroup: async (groupId) => {
+    try {
+      await axiosInstance.delete(`/groups/delete/${groupId}`);
+      set((state) => ({
+        groups: state.groups.filter((g) => g._id !== groupId),
+        selectedGroup: state.selectedGroup?._id === groupId ? null : state.selectedGroup,
+        messages: state.selectedGroup?._id === groupId ? [] : state.messages,
+      }));
+      toast.success("Channel deleted successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete channel");
+    }
+  },
+
   getGroupMessages: async (groupId) => {
     set({ isMessagesLoading: true });
     try {
@@ -729,6 +743,17 @@ export const useChatStore = create((set, get) => ({
       socket.emit("joinGroupRoom", { groupId: newGroup._id });
     });
 
+    socket.on("groupDeleted", ({ groupId }) => {
+      const { selectedGroup } = get();
+      if (selectedGroup && selectedGroup._id === groupId) {
+        set({ selectedGroup: null, messages: [] });
+        toast.error("This channel has been deleted by the admin.");
+      }
+      set((state) => ({
+        groups: state.groups.filter((g) => g._id !== groupId),
+      }));
+    });
+
     // ✅ MESSAGE REACTION RECEIVED
     socket.on("messageReaction", ({ messageId, reactions, triggerEmoji }) => {
       set((state) => ({
@@ -883,5 +908,6 @@ export const useChatStore = create((set, get) => ({
     socket.off("secretChatRequest");
     socket.off("secretChatAccepted");
     socket.off("secretChatClosed");
+    socket.off("groupDeleted");
   },
 }));

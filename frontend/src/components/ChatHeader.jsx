@@ -26,6 +26,7 @@ function ChatHeader() {
     activeSecretChat,
     initiateSecretChat,
     closeSecretChat,
+    deleteGroup,
   } = useChatStore();
   const { onlineUsers, authUser } = useAuthStore();
 
@@ -57,6 +58,10 @@ function ChatHeader() {
   const isOnline = !isGroup && onlineUsers.includes(selectedUser?._id);
   const isTyping = !isGroup && typingUsers.includes(selectedUser?._id);
   const isBlocked = !isGroup && authUser?.blockedUsers?.includes(selectedUser?._id);
+  const isAdmin = isGroup && selectedGroup.members?.some((m) => {
+    const memberId = m.userId?._id || m.userId;
+    return memberId?.toString() === authUser?._id?.toString() && m.role === "admin";
+  });
 
   if (selectedMessage) {
     const isMe = selectedMessage.senderId === authUser._id || selectedMessage.senderId?._id === authUser._id;
@@ -314,8 +319,28 @@ function ChatHeader() {
             >
               <Ban className="w-4 h-4" />
             </button>
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-150 pointer-events-none z-50 bg-[#121214] border border-white/10 text-sm text-zinc-300 px-3 py-1.5 rounded-xl font-medium whitespace-nowrap shadow-lg">
+            <div className="absolute top-full mt-2 left-1/2 -translate-y-1/2 scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-150 pointer-events-none z-50 bg-[#121214] border border-white/10 text-sm text-zinc-300 px-3 py-1.5 rounded-xl font-medium whitespace-nowrap shadow-lg">
               {isBlocked ? "Unblock user" : "Block user"}
+            </div>
+          </div>
+        )}
+
+        {/* Delete Group Button (Only if group and user is admin) */}
+        {isGroup && isAdmin && (
+          <div className="relative group flex items-center">
+            <button
+              onClick={() => {
+                if (window.confirm("Are you sure you want to delete this channel? This will permanently remove all messages and members.")) {
+                  deleteGroup(selectedGroup._id);
+                }
+              }}
+              className="p-2.5 rounded-xl text-[#555] hover:text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center flex-shrink-0"
+              title="Delete channel"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+            <div className="absolute top-full mt-2 left-1/2 -translate-y-1/2 scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-150 pointer-events-none z-50 bg-[#121214] border border-white/10 text-sm text-zinc-200 px-3 py-1.5 rounded-xl font-medium whitespace-nowrap shadow-lg">
+              Delete Channel
             </div>
           </div>
         )}

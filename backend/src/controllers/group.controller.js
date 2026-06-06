@@ -160,3 +160,44 @@ export const sendGroupMessage = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// ================= DELETE GROUP =================
+export const deleteGroup = async (req, res) => {
+  try {
+    const { id: groupId } = req.params;
+    const userId = req.user._id;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: "Group not found." });
+    }
+
+    // Verify user is an admin of this group
+    const isAdmin = group.members.some(
+      (m) => m.userId.toString() === userId.toString() && m.role === "admin"
+    );
+
+    if (!isAdmin) {
+      return res.status(403).json({ message: "Unauthorized. Only group admins can delete the channel." });
+    }
+
+    // Delete all messages associated with this group
+    await Message.deleteMany({ groupId });
+
+    // Delete the group itself
+    await Group.findByIdAndDelete(groupId);
+
+    // Notify all members via sockets that the group is deleted
+    group.members.forEach((m) => {
+      const socketId = getReceiverSocketId(m.userId);
+      if (socketId) {
+        io.to(socketId).emit("groupDeleted", { groupId });
+      }
+    });
+
+    res.status(200).json({ message: "Group deleted successfully.", groupId });
+  } catch (error) {
+    console.error("Error in deleteGroup controller:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};

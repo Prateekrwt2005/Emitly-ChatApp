@@ -1,5 +1,5 @@
 import express from "express";
-import { createGroup, getGroups, getGroupMessages, sendGroupMessage } from "../controllers/group.controller.js";
+import { createGroup, getGroups, getGroupMessages, sendGroupMessage, deleteGroup } from "../controllers/group.controller.js";
 import { protectedRoute } from "../middleware/auth.middleware.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
 
@@ -11,5 +11,6 @@ router.post("/create", createGroup);
 router.get("/", getGroups);
 router.get("/:id", getGroupMessages);
 router.post("/send/:id", sendGroupMessage);
+router.delete("/delete/:id", deleteGroup);
 
 export default router;
