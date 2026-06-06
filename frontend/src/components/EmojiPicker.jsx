@@ -57,7 +57,7 @@ function EmojiPicker({ onSelect }) {
   const currentCategory = EMOJI_CATEGORIES.find((cat) => cat.id === activeTab) || EMOJI_CATEGORIES[0];
 
   return (
-    <div className="absolute bottom-full mb-3 right-0 md:left-0 md:right-auto z-50 bg-[#0d0d10]/95 border border-white/10 rounded-2xl w-[280px] h-[310px] shadow-2xl flex flex-col p-3 backdrop-blur-xl select-none animate-in fade-in slide-in-from-bottom-2 duration-150">
+    <div className="absolute bottom-full mb-3 left-0 z-50 bg-[#0d0d10]/95 border border-white/10 rounded-2xl w-[280px] h-[310px] shadow-2xl flex flex-col p-3 backdrop-blur-xl select-none animate-in fade-in slide-in-from-bottom-2 duration-150">
       
       {/* TABS HEADER */}
       <div className="flex justify-between items-center border-b border-white/[0.06] pb-2 mb-2 flex-shrink-0">
