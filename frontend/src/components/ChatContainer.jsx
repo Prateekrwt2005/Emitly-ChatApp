@@ -223,9 +223,48 @@ function ChatContainer() {
     return () => unsubscribeFromMessages();
   }, [selectedUser, selectedGroup, socket, isSocketConnected, subscribeToMessages, unsubscribeFromMessages]);
 
+  const prevMessagesLengthRef = useRef(messages.length);
+  const prevActiveChatIdRef = useRef(null);
+  const activeChatId = selectedUser?._id || selectedGroup?._id;
+
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, replyToMessage]);
+    if (!activeChatId) return;
+
+    // Chat switched -> scroll to bottom instantly
+    if (activeChatId !== prevActiveChatIdRef.current) {
+      prevActiveChatIdRef.current = activeChatId;
+      prevMessagesLengthRef.current = messages.length;
+      scrollToBottom();
+      return;
+    }
+
+    // New message arrived or sent
+    if (messages.length > prevMessagesLengthRef.current) {
+      if (prevMessagesLengthRef.current === 0) {
+        // Initial load of messages -> scroll to bottom
+        scrollToBottom();
+      } else {
+        const lastMsg = messages[messages.length - 1];
+        const lastMsgSenderId = lastMsg.senderId?._id || lastMsg.senderId;
+        const isMe = lastMsgSenderId === authUser?._id;
+
+        if (isMe) {
+          scrollToBottom();
+        } else {
+          // Only scroll if already near bottom
+          const container = scrollContainerRef.current;
+          if (container) {
+            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 350;
+            if (isNearBottom) {
+              scrollToBottom();
+            }
+          }
+        }
+      }
+    }
+
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages, activeChatId, authUser]);
 
   useEffect(() => {
     if (pinnedMessages.length > 0 && currentPinIndex >= pinnedMessages.length) {
@@ -303,9 +342,11 @@ function ChatContainer() {
 
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
-    // Show button if scrolled up by more than 300px
     const isScrolledUp = scrollHeight - scrollTop - clientHeight > 300;
-    setShowScrollBtn(isScrolledUp);
+    setShowScrollBtn((prev) => {
+      if (prev !== isScrolledUp) return isScrolledUp;
+      return prev;
+    });
   };
 
   const handleContainerClick = (e) => {

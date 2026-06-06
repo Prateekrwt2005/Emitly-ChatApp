@@ -817,6 +817,7 @@ export const useChatStore = create((set, get) => ({
 
     socket.on("newMessage", async (newMessage) => {
       const { selectedUser, selectedGroup, chats, getMyChatPartners, isSoundEnabled } = get();
+      const authUser = useAuthStore.getState().authUser;
 
       if (isSoundEnabled) {
         const notificationSound = new Audio("/sounds/notification.mp3");
@@ -838,10 +839,24 @@ export const useChatStore = create((set, get) => ({
         }
       }
 
+      const senderId = newMessage.senderId?._id || newMessage.senderId;
+      const receiverId = newMessage.receiverId?._id || newMessage.receiverId;
+
       // Group messaging delivery check
       if (newMessage.groupId) {
         if (selectedGroup && newMessage.groupId === selectedGroup._id) {
-          set((state) => ({ messages: [...state.messages, newMessage] }));
+          set((state) => {
+            const exists = state.messages.some((m) => m._id === newMessage._id);
+            if (exists) {
+              return {
+                messages: state.messages.map((m) => m._id === newMessage._id ? newMessage : m)
+              };
+            } else {
+              return {
+                messages: [...state.messages, newMessage]
+              };
+            }
+          });
         } else {
           set((state) => ({
             groups: state.groups.map((g) =>
@@ -854,20 +869,40 @@ export const useChatStore = create((set, get) => ({
         return;
       }
 
-      if (selectedUser && newMessage.senderId === selectedUser._id) {
-        const currentMessages = get().messages;
-        set({ messages: [...currentMessages, newMessage] });
-        
-        socket.emit("messageSeen", {
-          messageId: newMessage._id,
-          senderId: newMessage.senderId,
+      const isCurrentChat = selectedUser && 
+        ((senderId === selectedUser._id && receiverId === authUser?._id) ||
+         (senderId === authUser?._id && receiverId === selectedUser._id));
+
+      if (isCurrentChat) {
+        set((state) => {
+          const exists = state.messages.some((m) => m._id === newMessage._id);
+          if (exists) {
+            return {
+              messages: state.messages.map((m) => m._id === newMessage._id ? newMessage : m)
+            };
+          } else {
+            return {
+              messages: [...state.messages, newMessage]
+            };
+          }
         });
+        
+        if (senderId === selectedUser._id) {
+          socket.emit("messageSeen", {
+            messageId: newMessage._id,
+            senderId: senderId,
+          });
+        }
       } else {
-        const chatExists = chats.some((c) => c._id === newMessage.senderId);
+        // Ignore my own messages sent to other chats
+        const isFromMe = authUser && senderId === authUser._id;
+        if (isFromMe) return;
+
+        const chatExists = chats.some((c) => c._id === senderId);
         if (chatExists) {
           set({
             chats: chats.map((c) =>
-              c._id === newMessage.senderId
+              c._id === senderId
                 ? { ...c, unreadCount: (c.unreadCount || 0) + 1 }
                 : c
             ),
@@ -879,17 +914,19 @@ export const useChatStore = create((set, get) => ({
         // Also update allContacts list in real-time
         set((state) => ({
           allContacts: state.allContacts.map((c) =>
-            c._id === newMessage.senderId
+            c._id === senderId
               ? { ...c, unreadCount: (c.unreadCount || 0) + 1 }
               : c
           ),
         }));
       }
 
-      socket.emit("messageDelivered", {
-        messageId: newMessage._id,
-        senderId: newMessage.senderId,
-      });
+      if (authUser && senderId !== authUser._id) {
+        socket.emit("messageDelivered", {
+          messageId: newMessage._id,
+          senderId: senderId,
+        });
+      }
     });
   },
 
