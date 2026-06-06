@@ -427,13 +427,33 @@ function ChatContainer() {
 
     return parts.map((part, idx) => {
       if (part.startsWith("**") && part.endsWith("**")) {
-        return <strong key={idx} className="font-bold text-white">{highlight(part.slice(2, -2))}</strong>;
+        return (
+          <strong key={idx} className={`font-bold ${isMe ? "text-black" : "text-white"}`}>
+            {highlight(part.slice(2, -2))}
+          </strong>
+        );
       } else if ((part.startsWith("*") && part.endsWith("*")) || (part.startsWith("_") && part.endsWith("_"))) {
-        return <em key={idx} className="italic text-zinc-300">{highlight(part.slice(1, -1))}</em>;
+        return (
+          <em key={idx} className={`italic ${isMe ? "text-zinc-800" : "text-zinc-300"}`}>
+            {highlight(part.slice(1, -1))}
+          </em>
+        );
       } else if (part.startsWith("~~") && part.endsWith("~~")) {
-        return <del key={idx} className="line-through text-zinc-500">{highlight(part.slice(2, -2))}</del>;
+        return (
+          <del key={idx} className={`line-through ${isMe ? "text-zinc-400" : "text-zinc-500"}`}>
+            {highlight(part.slice(2, -2))}
+          </del>
+        );
       } else if (part.startsWith("`") && part.endsWith("`")) {
-        return <code key={idx} className="font-mono text-xs bg-black/40 px-1.5 py-0.5 rounded text-zinc-200 border border-white/5">{highlight(part.slice(1, -1))}</code>;
+        return (
+          <code key={idx} className={`font-mono text-xs px-1.5 py-0.5 rounded border ${
+            isMe 
+              ? "bg-black/5 text-zinc-800 border-black/5" 
+              : "bg-black/40 text-zinc-200 border-white/5"
+          }`}>
+            {highlight(part.slice(1, -1))}
+          </code>
+        );
       }
       return <span key={idx}>{highlight(part)}</span>;
     });
@@ -613,7 +633,7 @@ function ChatContainer() {
                 const isHistorical = msg.createdAt ? (new Date(msg.createdAt).getTime() < mountedAtRef.current - 1000) : false;
 
                 // Calculate total votes for poll
-                const totalVotes = msg.poll ? msg.poll.options.reduce((sum, opt) => sum + (opt.votes?.length || 0), 0) : 0;
+                const totalVotes = (msg.poll && msg.poll.question) ? msg.poll.options.reduce((sum, opt) => sum + (opt.votes?.length || 0), 0) : 0;
 
                 return (
                   <motion.div
@@ -764,7 +784,7 @@ function ChatContainer() {
                             )}
 
                             {/* TEXT (Parsed Markdown) */}
-                            {msg.text && !msg.poll && parseMarkdown(msg.text, isMe)}
+                            {msg.text && (!msg.poll || !msg.poll.question) && parseMarkdown(msg.text, isMe)}
                           </>
                         )}
 
