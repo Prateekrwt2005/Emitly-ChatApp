@@ -196,7 +196,7 @@ function MessageInput() {
 
   // Schedule handler
   const handleSetSchedule = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!scheduleDate || !scheduleTime) {
       toast.error("Please specify both date and time");
       return;
@@ -425,7 +425,7 @@ function MessageInput() {
                   {showSchedulePicker && (
                     <div className="absolute bottom-full mb-3 left-0 bg-[#0d0d0d] border border-white/10 rounded-2xl p-4 shadow-2xl z-40 min-w-[240px] flex flex-col gap-3 animate-fadeIn">
                       <span className="text-xs font-semibold text-zinc-300 text-left">Schedule Message</span>
-                      <form onSubmit={handleSetSchedule} className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2">
                         <input
                           type="date"
                           required
@@ -449,13 +449,14 @@ function MessageInput() {
                             Cancel
                           </button>
                           <button
-                            type="submit"
+                            type="button"
+                            onClick={handleSetSchedule}
                             className="flex-1 py-1.5 bg-white text-black hover:bg-zinc-200 rounded-lg text-[10px] font-semibold transition-all"
                           >
                             Set
                           </button>
                         </div>
-                      </form>
+                      </div>
                     </div>
                   )}
                 </div>

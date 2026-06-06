@@ -790,19 +790,27 @@ function ChatContainer() {
 
                         {/* TIME + STATUS */}
                         <div className={`flex items-center justify-end gap-1 mt-1 text-[10px] select-none ${isMe ? "text-zinc-600" : "text-zinc-400"}`}>
-                          {msg.isPinned && (
-                            <Pin className={`w-2.5 h-2.5 rotate-45 mr-0.5 ${isMe ? "text-zinc-500" : "text-zinc-400"}`} />
-                          )}
-                          {new Date(msg.createdAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                          {isMe && !msg.groupId && (
-                            <span className="ml-0.5 flex items-center">
-                              {msg.status === "sent" && <Tick color="#71717a" />}
-                              {msg.status === "delivered" && <DoubleTick color="#71717a" />}
-                              {msg.status === "seen" && <DoubleTick color="var(--accent-color)" />}
+                          {msg.status === "scheduled" ? (
+                            <span className="text-amber-500 font-semibold flex items-center gap-1 select-none">
+                              🕒 Scheduled for {new Date(msg.scheduledAt).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' })}
                             </span>
+                          ) : (
+                            <>
+                              {msg.isPinned && (
+                                <Pin className={`w-2.5 h-2.5 rotate-45 mr-0.5 ${isMe ? "text-zinc-500" : "text-zinc-400"}`} />
+                              )}
+                              {new Date(msg.createdAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                              {isMe && !msg.groupId && (
+                                <span className="ml-0.5 flex items-center">
+                                  {msg.status === "sent" && <Tick color="#71717a" />}
+                                  {msg.status === "delivered" && <DoubleTick color="#71717a" />}
+                                  {msg.status === "seen" && <DoubleTick color="var(--accent-color)" />}
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
 

@@ -92,8 +92,15 @@ export const getGroups = async (req, res) => {
 export const getGroupMessages = async (req, res) => {
   try {
     const { id: groupId } = req.params;
+    const myId = req.user._id;
 
-    const messages = await Message.find({ groupId })
+    const messages = await Message.find({
+      groupId,
+      $or: [
+        { status: { $ne: "scheduled" } },
+        { status: "scheduled", senderId: myId }
+      ]
+    })
       .populate("senderId", "-password")
       .populate("replyTo")
       .sort({ createdAt: 1 });
@@ -108,7 +115,7 @@ export const getGroupMessages = async (req, res) => {
 // ================= SEND GROUP MESSAGE =================
 export const sendGroupMessage = async (req, res) => {
   try {
-    const { text, image, audio, replyTo } = req.body;
+    const { text, image, audio, replyTo, scheduledAt } = req.body;
     const { id: groupId } = req.params;
     const senderId = req.user._id;
 
@@ -137,14 +144,17 @@ export const sendGroupMessage = async (req, res) => {
       audioUrl = uploadResponse.secure_url;
     }
 
+    const status = scheduledAt ? "scheduled" : "sent";
+
     let newMessage = await Message.create({
       senderId,
       groupId,
       text,
       image: imageUrl,
       audio: audioUrl,
-      status: "sent",
+      status,
       replyTo: replyTo || undefined,
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
     });
 
     newMessage = await Message.findById(newMessage._id)
@@ -152,7 +162,9 @@ export const sendGroupMessage = async (req, res) => {
       .populate("replyTo");
 
     // Realtime broadcast to group socket room
-    io.to(`group_${groupId}`).emit("newMessage", newMessage);
+    if (status !== "scheduled") {
+      io.to(`group_${groupId}`).emit("newMessage", newMessage);
+    }
 
     res.status(201).json(newMessage);
   } catch (error) {
