@@ -4,6 +4,7 @@ import express from "express";
 import { ENV } from "./env.js";
 import { socketAuthMiddleware } from "../middleware/socket.auth.middleware.js";
 import Message from "../models/Message.js";
+import Group from "../models/Group.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -28,6 +29,21 @@ io.on("connection", (socket) => {
 
   const userId = socket.userId;
   userSocketMap[userId] = socket.id;
+
+  // Join group rooms
+  Group.find({ "members.userId": userId }).then((myGroups) => {
+    myGroups.forEach((g) => {
+      socket.join(`group_${g._id}`);
+      console.log(`User ${socket.user.fullName} joined room group_${g._id}`);
+    });
+  }).catch((err) => {
+    console.log("Error joining group rooms on connection:", err);
+  });
+
+  socket.on("joinGroupRoom", ({ groupId }) => {
+    socket.join(`group_${groupId}`);
+    console.log(`User ${socket.user.fullName} manually joined room group_${groupId}`);
+  });
 
   // ================= TYPING =================
   socket.on("typing", ({ receiverId }) => {
@@ -65,6 +81,31 @@ io.on("connection", (socket) => {
       }
     } catch (error) {
       console.log("Error updating seen:", error);
+    }
+  });
+
+  // ================= VIEWED (DISAPPEARING MESSAGE) =================
+  socket.on("messageViewed", async ({ messageId, senderId }) => {
+    try {
+      const msg = await Message.findByIdAndUpdate(messageId, {
+        isViewed: true,
+        text: "",
+        image: "",
+        audio: "",
+      }, { new: true });
+
+      if (msg) {
+        const senderSocketId = userSocketMap[senderId];
+        if (senderSocketId) {
+          io.to(senderSocketId).emit("messageViewedUpdate", { messageId });
+        }
+        const receiverSocketId = userSocketMap[msg.receiverId];
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit("messageViewedUpdate", { messageId });
+        }
+      }
+    } catch (error) {
+      console.log("Error updating messageViewed:", error);
     }
   });
 

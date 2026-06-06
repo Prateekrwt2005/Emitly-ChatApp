@@ -1,9 +1,6 @@
 import express from "express";
-import { getAllContacts } from "../controllers/message.controller.js";
+import { getAllContacts, getMessagesByUserId, sendMessage, getChatPartners, deleteMessage, togglePinMessage, blockUser, toggleReaction, votePoll } from "../controllers/message.controller.js";
 import { protectedRoute } from "../middleware/auth.middleware.js";
-import { getMessagesByUserId } from "../controllers/message.controller.js";
-import { sendMessage } from "../controllers/message.controller.js";
-import { getChatPartners } from "../controllers/message.controller.js";
 import { arcjetProtection } from "../middleware/arcjet.middleware.js";
 
 const router = express.Router();
@@ -19,8 +16,16 @@ router.get("/chats", getChatPartners);
 
 router.get("/:id", getMessagesByUserId);
 
+router.delete("/delete/:id", deleteMessage);
 
+router.put("/pin/:id", togglePinMessage);
 
-router.post("/send/:id",  sendMessage);
+router.post("/send/:id", sendMessage);
+
+router.post("/block/:id", blockUser);
+
+router.put("/reaction/:id", toggleReaction);
+
+router.post("/vote/:id", votePoll);
 
 export default router;

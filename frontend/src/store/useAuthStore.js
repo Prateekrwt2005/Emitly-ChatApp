@@ -12,6 +12,7 @@ export const useAuthStore = create((set, get) => ({
   isLoggingIn: false,
   socket: null,
   onlineUsers: [],
+  isSocketConnected: false,
 
   checkAuth: async () => {
     try {
@@ -35,7 +36,7 @@ export const useAuthStore = create((set, get) => ({
       toast.success("Account created successfully!");
       get().connectSocket();
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to sign up. Please try again.");
     } finally {
       set({ isSigningUp: false });
     }
@@ -51,7 +52,7 @@ export const useAuthStore = create((set, get) => ({
 
       get().connectSocket();
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to log in. Please try again.");
     } finally {
       set({ isLoggingIn: false });
     }
@@ -76,7 +77,7 @@ export const useAuthStore = create((set, get) => ({
       toast.success("Profile updated successfully");
     } catch (error) {
       console.log("Error in update profile:", error);
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to update profile");
     }
   },
 
@@ -92,13 +93,22 @@ export const useAuthStore = create((set, get) => ({
 
     set({ socket });
 
+    socket.on("connect", () => {
+      set({ isSocketConnected: true });
+    });
+
     // listen for online users event
     socket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
+    });
+
+    socket.on("disconnect", () => {
+      set({ isSocketConnected: false, onlineUsers: [] });
     });
   },
 
   disconnectSocket: () => {
     if (get().socket?.connected) get().socket.disconnect();
+    set({ isSocketConnected: false });
   },
 }));

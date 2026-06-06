@@ -47,6 +47,8 @@ generateToken(savedUser._id, res);
       fullName: savedUser.fullName, // ✅ return as fullName
       email: savedUser.email,
       profilePic: savedUser.profilePic,
+      bio: savedUser.bio || "",
+      customStatus: savedUser.customStatus || { emoji: "", text: "" },
     });
 
   } catch (err) {
@@ -77,6 +79,8 @@ export const login = async (req, res) => {
       fullName: user.fullName,
       email: user.email,
       profilePic: user.profilePic,
+      bio: user.bio || "",
+      customStatus: user.customStatus || { emoji: "", text: "" },
     });
   } catch (error) {
     console.error("Error in login controller:", error);
@@ -91,38 +95,45 @@ export const logout = (_, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { profilePic } = req.body;
-
-    // ✅ 1. Check if exists
-    if (!profilePic) {
-      return res.status(400).json({ message: "Profile pic is required" });
-    }
-
-    // ✅ 2. Check format (base64)
-    if (!profilePic.startsWith("data:image")) {
-      return res.status(400).json({ message: "Invalid image format" });
-    }
-
-    // ✅ 3. CHECK SIZE (ADD HERE 👇)
-   if (profilePic.length > 2000000) {
-  return res.status(400).json({ message: "Image too large" });
-}
-
-    console.log("Uploading image...");
-
+    const { profilePic, bio, customStatus } = req.body;
     const userId = req.user._id;
+    const updateData = {};
 
-    // ✅ 4. Upload to Cloudinary
-    const uploadResponse = await cloudinary.uploader.upload(profilePic, {
-      folder: "emitly_profiles",
-      resource_type: "image",
-    });
+    if (profilePic) {
+      // ✅ Check format (base64)
+      if (!profilePic.startsWith("data:image")) {
+        return res.status(400).json({ message: "Invalid image format" });
+      }
+
+      // ✅ CHECK SIZE
+      if (profilePic.length > 2000000) {
+        return res.status(400).json({ message: "Image too large" });
+      }
+
+      console.log("Uploading image...");
+      const uploadResponse = await cloudinary.uploader.upload(profilePic, {
+        folder: "emitly_profiles",
+        resource_type: "image",
+      });
+      updateData.profilePic = uploadResponse.secure_url;
+    }
+
+    if (bio !== undefined) {
+      updateData.bio = bio;
+    }
+
+    if (customStatus !== undefined) {
+      updateData.customStatus = {
+        emoji: customStatus.emoji || "",
+        text: customStatus.text || "",
+      };
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { profilePic: uploadResponse.secure_url },
+      { $set: updateData },
       { new: true }
-    );
+    ).select("-password");
 
     res.status(200).json(updatedUser);
 
