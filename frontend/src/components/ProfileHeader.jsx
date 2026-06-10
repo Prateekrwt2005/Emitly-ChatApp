@@ -231,7 +231,7 @@ function ProfileHeader() {
           </div>
 
           {/* Collapse Sidebar */}
-          <div className="relative group flex items-center">
+          <div className="hidden md:flex relative group items-center">
             <button
               className="p-2.5 rounded-xl text-[#555] hover:text-[#ececec] hover:bg-white/5 transition-all"
               onClick={toggleSidebar}
