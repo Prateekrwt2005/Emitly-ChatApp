@@ -582,6 +582,11 @@ function MessageInput() {
                 type="text"
                 value={text}
                 disabled={isBlockedByMe}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="sentences"
+                spellCheck="true"
+                name="chat-message"
                 onChange={(e) => {
                   setText(e.target.value);
                   isSoundEnabled && playRandomKeyStrokeSound();

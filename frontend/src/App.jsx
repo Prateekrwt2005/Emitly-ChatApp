@@ -199,7 +199,7 @@ function App() {
               transition={{
                 duration: 0.8,
               }}
-              className="relative z-10 min-h-screen flex items-center justify-center p-0 md:p-6"
+              className="relative z-10 min-h-screen flex items-stretch md:items-center justify-center p-0 md:p-6"
             >
               <Routes>
                 <Route

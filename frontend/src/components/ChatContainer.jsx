@@ -746,7 +746,13 @@ function ChatContainer() {
                     )}
 
                     <div
-                      className={`relative max-w-[85%] md:max-w-[72%] rounded-2xl text-[14px] leading-relaxed shadow-sm cursor-pointer select-text break-words overflow-hidden
+                      onMouseDown={() => startPressTimer(msg)}
+                      onMouseUp={cancelPressTimer}
+                      onMouseLeave={cancelPressTimer}
+                      onTouchStart={() => startPressTimer(msg)}
+                      onTouchEnd={cancelPressTimer}
+                      onDoubleClick={() => setSelectedMessage(msg)}
+                      className={`relative max-w-[85%] md:max-w-[72%] rounded-2xl text-[14px] leading-relaxed shadow-sm cursor-pointer select-text break-words overflow-visible
                         ${(msg.image || msg.audio) && !msg.text ? "p-1 pb-1.5" : "px-3.5 py-2"}
                         ${isMe
                           ? "bg-white text-black rounded-br-[4px] shadow-[0_4px_12px_rgba(255,255,255,0.03)]"
@@ -1007,12 +1013,6 @@ function ChatContainer() {
                     {isHistorical ? (
                       <div
                         id={`msg-${msg._id}`}
-                        onMouseDown={() => startPressTimer(msg)}
-                        onMouseUp={cancelPressTimer}
-                        onMouseLeave={cancelPressTimer}
-                        onTouchStart={() => startPressTimer(msg)}
-                        onTouchEnd={cancelPressTimer}
-                        onDoubleClick={() => setSelectedMessage(msg)}
                         className={containerClasses}
                       >
                         {renderBubbleContent()}
@@ -1024,12 +1024,6 @@ function ChatContainer() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                        onMouseDown={() => startPressTimer(msg)}
-                        onMouseUp={cancelPressTimer}
-                        onMouseLeave={cancelPressTimer}
-                        onTouchStart={() => startPressTimer(msg)}
-                        onTouchEnd={cancelPressTimer}
-                        onDoubleClick={() => setSelectedMessage(msg)}
                         className={containerClasses}
                       >
                         {renderBubbleContent()}
