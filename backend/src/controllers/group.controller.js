@@ -103,6 +103,7 @@ export const getGroupMessages = async (req, res) => {
     })
       .populate("senderId", "-password")
       .populate("replyTo")
+      .populate("poll.options.votes", "fullName profilePic")
       .sort({ createdAt: 1 });
 
     res.status(200).json(messages);

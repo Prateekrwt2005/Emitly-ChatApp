@@ -40,7 +40,7 @@ function ChatPage() {
               </div>
             )}
 
-            <div className="flex-1 overflow-y-auto p-2">
+            <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
               {activeTab === "chats" ? <ChatsList /> : <ContactList />}
             </div>
           </div>
