@@ -80,6 +80,7 @@ export const getMessagesByUserId = async (req, res) => {
       ]
     })
       .populate("replyTo")
+      .populate("poll.options.votes", "fullName profilePic")
       .sort({ createdAt: 1 });
 
     res.status(200).json(messages);
@@ -448,6 +449,9 @@ export const votePoll = async (req, res) => {
     }
 
     await message.save();
+
+    // Populate user details for voter names/avatars
+    await message.populate("poll.options.votes", "fullName profilePic");
 
     // Broadcast the update
     const payload = {

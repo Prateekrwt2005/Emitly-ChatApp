@@ -10,6 +10,7 @@ import CustomAudioPlayer from "./CustomAudioPlayer";
 import { ArrowDownIcon, SearchIcon, Pin, ChevronLeft, ChevronRight, X, Eye, EyeOff } from "lucide-react";
 import ForwardModal from "./ForwardModal";
 import RightSidebar from "./RightSidebar";
+import VotersModal from "./VotersModal";
 
 // ✅ Tick Icons
 const Tick = ({ color = "#888" }) => (
@@ -32,6 +33,32 @@ const DoubleTick = ({ color = "#888" }) => (
     </div>
   </div>
 );
+
+const formatDividerDate = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  const isSameDay = (d1, d2) =>
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate();
+
+  if (isSameDay(date, today)) {
+    return "Today";
+  } else if (isSameDay(date, yesterday)) {
+    return "Yesterday";
+  } else {
+    return date.toLocaleDateString(undefined, {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
+};
 
 const smokeVariants = {
   hidden: {
@@ -183,6 +210,8 @@ function ChatContainer() {
 
   const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
   const [messageToForward, setMessageToForward] = useState(null);
+  const [isVotersModalOpen, setIsVotersModalOpen] = useState(false);
+  const [selectedPoll, setSelectedPoll] = useState(null);
 
   const activeChat = selectedUser || selectedGroup;
   const pinnedMessages = messages.filter((m) => m.isPinned);
@@ -276,12 +305,21 @@ function ChatContainer() {
     if (!selectedUser) return;
     const socket = useAuthStore.getState().socket;
     if (!socket) return;
-    messages.forEach((msg) => {
+
+    let hasUpdates = false;
+    const updatedMessages = messages.map((msg) => {
       const msgSenderId = msg.senderId?._id || msg.senderId;
       if (msgSenderId === selectedUser._id && msg.status !== "seen") {
         socket.emit("messageSeen", { messageId: msg._id, senderId: msgSenderId });
+        hasUpdates = true;
+        return { ...msg, status: "seen" };
       }
+      return msg;
     });
+
+    if (hasUpdates) {
+      useChatStore.setState({ messages: updatedMessages });
+    }
   }, [messages, selectedUser]);
 
   // Click outside selected message to dismiss selection/reactions popup
@@ -599,7 +637,7 @@ function ChatContainer() {
         ref={scrollContainerRef}
         onScroll={handleScroll}
         onClick={handleContainerClick}
-        className={`flex-1 px-3 py-4 md:px-4 overflow-y-auto overflow-x-hidden scroll-smooth relative ${getWallpaperClass()}`}
+        className={`flex-1 px-3 py-4 md:px-4 overflow-y-auto overflow-x-hidden custom-scrollbar relative ${getWallpaperClass()}`}
       >
         {/* Sticky Chat search panel */}
         {isMsgSearchOpen && (
@@ -649,10 +687,19 @@ function ChatContainer() {
         {messages.length > 0 && !isMessagesLoading ? (
           <div className="w-full max-w-full flex flex-col gap-2 px-1 md:px-2">
             <AnimatePresence initial={false}>
-              {messages.map((msg) => {
+              {messages.map((msg, index) => {
                 const msgSenderId = msg.senderId?._id || msg.senderId;
                 const isMe = msgSenderId === authUser._id;
                 const activeReactions = getGroupedReactions(msg.reactions);
+
+                // Date separator calculations
+                const msgDate = msg.createdAt ? new Date(msg.createdAt) : null;
+                const prevMsg = index > 0 ? messages[index - 1] : null;
+                const prevMsgDate = prevMsg && prevMsg.createdAt ? new Date(prevMsg.createdAt) : null;
+                const isDifferentDay = !prevMsgDate || !msgDate || 
+                  msgDate.getFullYear() !== prevMsgDate.getFullYear() ||
+                  msgDate.getMonth() !== prevMsgDate.getMonth() ||
+                  msgDate.getDate() !== prevMsgDate.getDate();
 
                 // Message text matches the search
                 const hasQuery = !!msgSearchQuery;
@@ -675,227 +722,320 @@ function ChatContainer() {
 
                 // Calculate total votes for poll
                 const totalVotes = (msg.poll && msg.poll.question) ? msg.poll.options.reduce((sum, opt) => sum + (opt.votes?.length || 0), 0) : 0;
+                const renderBubbleContent = () => (
+                  <div className={`flex relative ${isMe ? "justify-end" : "justify-start"} w-full`}>
+                    {/* Emojis Reactions Popover (renders above the selected message bubble) */}
+                    {isSelected && (
+                      <div className={`absolute -top-9 z-20 flex gap-1 p-1 bg-[#121214] border border-white/10 rounded-full shadow-lg animate-fadeIn ${
+                        isMe ? "right-2" : "left-2"
+                      }`}>
+                        {["👍", "❤️", "🔥", "😂", "👏"].map((emoji) => (
+                          <button
+                            key={emoji}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleReact(msg._id, emoji);
+                              setSelectedMessage(null);
+                            }}
+                            className="hover:scale-125 active:scale-95 transition px-2 py-0.5 text-base md:text-sm"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-                return (
-                  <motion.div
-                    key={msg.tempId || msg._id}
-                    id={`msg-${msg._id}`}
-                    initial={isHistorical ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 12, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                    onMouseDown={() => startPressTimer(msg)}
-                    onMouseUp={cancelPressTimer}
-                    onMouseLeave={cancelPressTimer}
-                    onTouchStart={() => startPressTimer(msg)}
-                    onTouchEnd={cancelPressTimer}
-                    onDoubleClick={() => setSelectedMessage(msg)}
-                    className={`flex flex-col relative transition-[opacity,filter] duration-150 ease-out ${stateClasses} ${isMe ? "items-end" : "items-start"} ${activeReactions.length > 0 ? "mb-2.5" : ""}`}
-                  >
-                    <div className={`flex relative ${isMe ? "justify-end" : "justify-start"} w-full`}>
-                      {/* Emojis Reactions Popover (renders above the selected message bubble) */}
-                      {isSelected && (
-                        <div className={`absolute -top-9 z-20 flex gap-1 p-1 bg-[#121214] border border-white/10 rounded-full shadow-lg animate-fadeIn ${
-                          isMe ? "right-2" : "left-2"
-                        }`}>
-                          {["👍", "❤️", "🔥", "😂", "👏"].map((emoji) => (
-                            <button
-                              key={emoji}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleReact(msg._id, emoji);
-                                setSelectedMessage(null);
-                              }}
-                              className="hover:scale-125 active:scale-95 transition px-2 py-0.5 text-base md:text-sm"
-                            >
-                              {emoji}
-                            </button>
-                          ))}
+                    <div
+                      className={`relative max-w-[85%] md:max-w-[72%] rounded-2xl text-[14px] leading-relaxed shadow-sm cursor-pointer select-text break-words overflow-hidden
+                        ${(msg.image || msg.audio) && !msg.text ? "p-1 pb-1.5" : "px-3.5 py-2"}
+                        ${isMe
+                          ? "bg-white text-black rounded-br-[4px] shadow-[0_4px_12px_rgba(255,255,255,0.03)]"
+                          : "bg-[#121214] text-[#ececec] border border-white/[0.06] rounded-bl-[4px]"
+                        }
+                        ${isSelected ? "ring-2 ring-zinc-500/50" : ""}
+                        ${isHighlighted ? "ring-2 ring-white/50 scale-[1.02]" : ""}
+                        ${searchMatches[activeMatchIndex]?._id === msg._id ? "ring-2 ring-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.3)] scale-[1.01]" : ""}
+                        transition-[box-shadow,transform] duration-150 ease-out`}
+                    >
+                      {/* Group Sender Name */}
+                      {!isMe && msg.groupId && (
+                        <div className="text-[11px] font-bold text-amber-500 mb-1 text-left select-none">
+                          {msg.senderId?.fullName || "Group Member"}
                         </div>
                       )}
 
-                       <div
-                        className={`relative max-w-[85%] md:max-w-[72%] rounded-2xl text-[14px] leading-relaxed shadow-sm cursor-pointer select-text break-words overflow-hidden
-                          ${(msg.image || msg.audio) && !msg.text ? "p-1 pb-1.5" : "px-3.5 py-2"}
-                          ${isMe
-                            ? "bg-white text-black rounded-br-[4px] shadow-[0_4px_12px_rgba(255,255,255,0.03)]"
-                            : "bg-[#121214] text-[#ececec] border border-white/[0.06] rounded-bl-[4px]"
-                          }
-                          ${isSelected ? "ring-2 ring-zinc-500/50" : ""}
-                          ${isHighlighted ? "ring-2 ring-white/50 scale-[1.02]" : ""}
-                          ${searchMatches[activeMatchIndex]?._id === msg._id ? "ring-2 ring-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.3)] scale-[1.01]" : ""}
-                          transition-[box-shadow,transform] duration-150 ease-out`}
-                      >
-                        {/* Group Sender Name */}
-                        {!isMe && msg.groupId && (
-                          <div className="text-[11px] font-bold text-amber-500 mb-1 text-left select-none">
-                            {msg.senderId?.fullName || "Group Member"}
+                      {/* REPLY QUOTE BLOCK */}
+                      {msg.replyTo && (
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent bubble click handlers
+                            scrollToMessage(msg.replyTo._id);
+                          }}
+                          className="mb-2 p-2 bg-[#000]/25 hover:bg-[#000]/35 transition-colors border-l-2 border-zinc-500 rounded-r-lg text-xs cursor-pointer select-none text-left"
+                        >
+                          <div className={`font-semibold text-[10px] ${isMe ? "text-zinc-500" : "text-zinc-400"}`}>
+                            {msg.replyTo.senderId === authUser._id || msg.replyTo.senderId?._id === authUser._id ? "You" : (selectedUser?.fullName || msg.replyTo.senderId?.fullName || "Member")}
                           </div>
-                        )}
-
-                        {/* REPLY QUOTE BLOCK */}
-                        {msg.replyTo && (
-                          <div 
-                            onClick={(e) => {
-                              e.stopPropagation(); // Prevent bubble click handlers
-                              scrollToMessage(msg.replyTo._id);
-                            }}
-                            className="mb-2 p-2 bg-[#000]/25 hover:bg-[#000]/35 transition-colors border-l-2 border-zinc-500 rounded-r-lg text-xs cursor-pointer select-none text-left"
-                          >
-                            <div className={`font-semibold text-[10px] ${isMe ? "text-zinc-500" : "text-zinc-400"}`}>
-                              {msg.replyTo.senderId === authUser._id || msg.replyTo.senderId?._id === authUser._id ? "You" : (selectedUser?.fullName || msg.replyTo.senderId?.fullName || "Member")}
-                            </div>
-                            <div className={`truncate max-w-[220px] ${isMe ? "text-zinc-700" : "text-zinc-300"}`}>
-                              {msg.replyTo.text 
-                                ? msg.replyTo.text 
-                                : msg.replyTo.image 
-                                  ? "📷 Photo" 
-                                  : msg.replyTo.audio 
-                                    ? "🎵 Voice message" 
-                                    : "Message"}
-                            </div>
+                          <div className={`truncate max-w-[220px] ${isMe ? "text-zinc-700" : "text-zinc-300"}`}>
+                            {msg.replyTo.text 
+                              ? msg.replyTo.text 
+                              : msg.replyTo.image 
+                                ? "📷 Photo" 
+                                : msg.replyTo.audio 
+                                  ? "🎵 Voice message" 
+                                  : "Message"}
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        {msg.isViewOnce ? (
-                          <ViewOnceMessage
-                            msg={msg}
-                            isMe={isMe}
-                            authUser={authUser}
-                            selectedUser={selectedUser}
-                            socket={socket}
-                          />
-                        ) : (
-                          <>
-                            {/* IMAGE */}
-                            {msg.image && (
-                              <img
-                                src={msg.image}
-                                alt="Shared"
-                                className={`rounded-xl object-cover max-h-60 w-full ${msg.text ? "mb-1.5" : ""}`}
-                              />
-                            )}
+                      {msg.isViewOnce ? (
+                        <ViewOnceMessage
+                          msg={msg}
+                          isMe={isMe}
+                          authUser={authUser}
+                          selectedUser={selectedUser}
+                          socket={socket}
+                        />
+                      ) : (
+                        <>
+                          {/* IMAGE */}
+                          {msg.image && (
+                            <img
+                              src={msg.image}
+                              alt="Shared"
+                              className={`rounded-xl object-cover max-h-60 w-full ${msg.text ? "mb-1.5" : ""}`}
+                            />
+                          )}
 
-                            {/* AUDIO */}
-                            {msg.audio && (
-                              <CustomAudioPlayer src={msg.audio} isMe={isMe} />
-                            )}
+                          {/* AUDIO */}
+                          {msg.audio && (
+                            <CustomAudioPlayer src={msg.audio} isMe={isMe} />
+                          )}
 
-                            {/* POLL CARD */}
-                            {msg.poll && msg.poll.question && (
-                              <div className={`poll-card my-1.5 p-3.5 rounded-xl border text-left min-w-[220px] sm:min-w-[260px] select-none
-                                ${isMe 
-                                  ? "bg-black/[0.03] border-black/5" 
-                                  : "bg-black/30 border-white/5"
-                                }`}
+                          {/* POLL CARD */}
+                          {msg.poll && msg.poll.question && (
+                            <div className={`poll-card my-1.5 p-3.5 rounded-xl border text-left min-w-[220px] sm:min-w-[260px] select-none
+                              ${isMe 
+                                ? "bg-black/[0.03] border-black/5" 
+                                : "bg-black/30 border-white/5"
+                              }`}
+                            >
+                              <h4 className={`text-xs sm:text-sm font-semibold mb-3 leading-snug
+                                ${isMe ? "text-zinc-900" : "text-white"}`}
                               >
-                                <h4 className={`text-xs sm:text-sm font-semibold mb-3 leading-snug
-                                  ${isMe ? "text-zinc-900" : "text-white"}`}
-                                >
-                                  {msg.poll.question}
-                                </h4>
-                                <div className="space-y-2">
-                                  {msg.poll.options.map((opt) => {
-                                    const votesCount = opt.votes?.length || 0;
-                                    const hasVoted = opt.votes?.some(vId => vId.toString() === authUser._id.toString());
-                                    const percent = totalVotes > 0 ? Math.round((votesCount / totalVotes) * 100) : 0;
-                                    return (
-                                      <button
-                                        key={opt._id}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          votePoll(msg._id, opt._id);
-                                        }}
-                                        className={`relative w-full text-left p-2 rounded-lg border overflow-hidden transition-all active:scale-[0.99] flex items-center justify-between
-                                          ${isMe 
-                                            ? `border-black/5 hover:bg-black/[0.04] ${hasVoted ? "border-[var(--accent-color)]/30 bg-[var(--accent-color)]/[0.03] hover:bg-[var(--accent-color)]/[0.05]" : ""}` 
-                                            : `border-white/5 hover:bg-white/5 ${hasVoted ? "border-[var(--accent-color)]/40 bg-[var(--accent-color)]/10 hover:bg-[var(--accent-color)]/15" : ""}`
-                                          }`}
+                                {msg.poll.question}
+                              </h4>
+                              <div className="space-y-2">
+                                {msg.poll.options.map((opt) => {
+                                  const votesCount = opt.votes?.length || 0;
+                                  const hasVoted = opt.votes?.some(v => {
+                                    const voterId = v._id || v;
+                                    return voterId.toString() === authUser._id.toString();
+                                  });
+                                  const percent = totalVotes > 0 ? Math.round((votesCount / totalVotes) * 100) : 0;
+                                  
+                                  const voterNames = !msg.poll.isAnonymous && opt.votes
+                                    ? opt.votes.map(v => v.fullName || "Member").join(", ")
+                                    : "";
+
+                                  return (
+                                    <button
+                                      key={opt._id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        votePoll(msg._id, opt._id);
+                                      }}
+                                      className={`relative w-full text-left p-2 rounded-lg border overflow-hidden transition-all active:scale-[0.99] flex items-center justify-between
+                                        ${isMe 
+                                          ? `border-black/5 hover:bg-black/[0.04] ${hasVoted ? "border-[var(--accent-color)]/30 bg-[var(--accent-color)]/[0.03] hover:bg-[var(--accent-color)]/[0.05]" : ""}` 
+                                          : `border-white/5 hover:bg-white/5 ${hasVoted ? "border-[var(--accent-color)]/40 bg-[var(--accent-color)]/10 hover:bg-[var(--accent-color)]/15" : ""}`
+                                        }`}
+                                    >
+                                      {/* Progress fill */}
+                                      <div
+                                        className={`absolute inset-y-0 left-0 transition-all duration-500 ease-out
+                                          ${isMe ? "bg-[var(--accent-color)]/[0.08]" : "bg-[var(--accent-color)]/20"}`}
+                                        style={{ width: `${percent}%` }}
+                                      />
+                                      <span className={`relative z-10 text-xs font-semibold truncate flex-1 pr-2
+                                        ${isMe ? "text-zinc-800" : "text-zinc-200"}`}
                                       >
-                                        {/* Progress fill */}
-                                        <div
-                                          className={`absolute inset-y-0 left-0 transition-all duration-500 ease-out
-                                            ${isMe ? "bg-[var(--accent-color)]/[0.08]" : "bg-[var(--accent-color)]/20"}`}
-                                          style={{ width: `${percent}%` }}
-                                        />
-                                        <span className={`relative z-10 text-xs font-semibold truncate flex-1 pr-2
-                                          ${isMe ? "text-zinc-800" : "text-zinc-200"}`}
-                                        >
-                                          {opt.text}
-                                        </span>
+                                        {opt.text}
+                                      </span>
+                                      <div className="flex items-center gap-1.5 relative z-10 shrink-0">
+                                        {/* Voters Facepile */}
+                                        {!msg.poll.isAnonymous && opt.votes && opt.votes.length > 0 && (
+                                          <div 
+                                            className="flex items-center -space-x-1.5 mr-1 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedPoll(msg.poll);
+                                              setIsVotersModalOpen(true);
+                                            }}
+                                          >
+                                            {opt.votes.slice(0, 3).map((voter) => {
+                                              const name = voter.fullName || "Member";
+                                              const pic = voter.profilePic || "/avatar.png";
+                                              return (
+                                                <div
+                                                  key={voter._id || voter}
+                                                  className="group/voter relative hover:z-30 transition-all"
+                                                >
+                                                  <img
+                                                    src={pic}
+                                                    alt={name}
+                                                    className={`w-4 h-4 rounded-full object-cover border ${isMe ? "border-white" : "border-[#121214]"}`}
+                                                  />
+                                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/voter:block bg-zinc-950/90 backdrop-blur-md text-zinc-100 text-[9px] py-1 px-1.5 rounded-lg whitespace-nowrap shadow-xl border border-white/10 z-50 pointer-events-none font-medium">
+                                                    {name}
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                            {opt.votes.length > 3 && (
+                                              <div className="group/more relative pl-1 select-none hover:z-30 transition-all">
+                                                <span className={`text-[8px] font-bold ${isMe ? "text-zinc-600" : "text-zinc-400"}`}>
+                                                  +{opt.votes.length - 3}
+                                                </span>
+                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/more:block bg-zinc-950/90 backdrop-blur-md text-zinc-100 text-[9px] py-1 px-1.5 rounded-lg whitespace-nowrap shadow-xl border border-white/10 z-50 pointer-events-none font-medium max-w-[200px] overflow-hidden text-ellipsis">
+                                                  {voterNames}
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+
                                         <span className={`relative z-10 text-[10px] font-mono font-medium shrink-0
                                           ${isMe ? "text-zinc-500" : "text-zinc-400"}`}
                                         >
                                           {percent}% ({votesCount})
                                         </span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                                <div className={`mt-3 text-[10px] font-medium text-left
-                                  ${isMe ? "text-zinc-500" : "text-zinc-500"}`}
-                                >
-                                  {totalVotes} vote{totalVotes === 1 ? "" : "s"} • {msg.poll.isAnonymous ? "Anonymous Poll" : "Public Poll"}
-                                </div>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
                               </div>
-                            )}
-
-                            {/* TEXT (Parsed Markdown) */}
-                            {msg.text && (!msg.poll || !msg.poll.question) && parseMarkdown(msg.text, isMe)}
-                          </>
-                        )}
-
-                        {/* TIME + STATUS */}
-                        <div className={`flex items-center justify-end gap-1 mt-1 text-[10px] select-none ${isMe ? "text-zinc-600" : "text-zinc-400"}`}>
-                          {msg.status === "scheduled" ? (
-                            <span className="text-amber-500 font-semibold flex items-center gap-1 select-none">
-                              🕒 Scheduled for {new Date(msg.scheduledAt).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' })}
-                            </span>
-                          ) : (
-                            <>
-                              {msg.isPinned && (
-                                <Pin className={`w-2.5 h-2.5 rotate-45 mr-0.5 ${isMe ? "text-zinc-500" : "text-zinc-400"}`} />
-                              )}
-                              {new Date(msg.createdAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                              {isMe && !msg.groupId && (
-                                <span className="ml-0.5 flex items-center">
-                                  {msg.status === "sent" && <Tick color="#71717a" />}
-                                  {msg.status === "delivered" && <DoubleTick color="#71717a" />}
-                                  {msg.status === "seen" && <DoubleTick color="var(--accent-color)" />}
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </div>
-
-                        {/* Reactions view */}
-                        {activeReactions.length > 0 && (
-                          <div className={`absolute -bottom-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#121214] border border-white/10 text-[10px] text-[#acacac] shadow-lg z-10 select-none ${
-                            isMe ? "left-3" : "right-3"
-                          }`}>
-                            {activeReactions.map((reaction) => (
-                              <button
-                                key={reaction.emoji}
+                              <div 
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleReact(msg._id, reaction.emoji);
+                                  if (totalVotes > 0) {
+                                    setSelectedPoll(msg.poll);
+                                    setIsVotersModalOpen(true);
+                                  }
                                 }}
-                                className="hover:scale-110 active:scale-95 transition flex items-center gap-0.5"
+                                className={`mt-3 text-[10px] font-medium text-left select-none
+                                  ${totalVotes > 0 ? "cursor-pointer hover:underline" : ""}
+                                  ${isMe ? "text-zinc-500" : "text-zinc-500"}`}
                               >
-                                <span>{reaction.emoji}</span>
-                                {reaction.count > 1 && (
-                                  <span className="text-[9px] text-zinc-500 font-semibold">{reaction.count}</span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
+                                {totalVotes} vote{totalVotes === 1 ? "" : "s"} • {msg.poll.isAnonymous ? "Anonymous Poll" : "Public Poll"}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* TEXT (Parsed Markdown) */}
+                          {msg.text && (!msg.poll || !msg.poll.question) && parseMarkdown(msg.text, isMe)}
+                        </>
+                      )}
+
+                      {/* TIME + STATUS */}
+                      <div className={`flex items-center justify-end gap-1 mt-1 text-[10px] select-none ${isMe ? "text-zinc-600" : "text-zinc-400"}`}>
+                        {msg.status === "scheduled" ? (
+                          <span className="text-amber-500 font-semibold flex items-center gap-1 select-none">
+                            🕒 Scheduled for {new Date(msg.scheduledAt).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' })}
+                          </span>
+                        ) : (
+                          <>
+                            {msg.isPinned && (
+                              <Pin className={`w-2.5 h-2.5 rotate-45 mr-0.5 ${isMe ? "text-zinc-500" : "text-zinc-400"}`} />
+                            )}
+                            {new Date(msg.createdAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                            {isMe && !msg.groupId && (
+                              <span className="ml-0.5 flex items-center">
+                                {msg.status === "sent" && <Tick color="#71717a" />}
+                                {msg.status === "delivered" && <DoubleTick color="#71717a" />}
+                                {msg.status === "seen" && <DoubleTick color="var(--accent-color)" />}
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
+
+                      {/* Reactions view */}
+                      {activeReactions.length > 0 && (
+                        <div className={`absolute -bottom-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#121214] border border-white/10 text-[10px] text-[#acacac] shadow-lg z-10 select-none ${
+                          isMe ? "left-3" : "right-3"
+                        }`}>
+                          {activeReactions.map((reaction) => (
+                            <button
+                              key={reaction.emoji}
+                              onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleReact(msg._id, reaction.emoji);
+                              }}
+                              className="hover:scale-110 active:scale-95 transition flex items-center gap-0.5"
+                            >
+                              <span>{reaction.emoji}</span>
+                              {reaction.count > 1 && (
+                                <span className="text-[9px] text-zinc-500 font-semibold">{reaction.count}</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </motion.div>
+                  </div>
+                );
+
+                const containerClasses = `flex flex-col relative ${
+                  (hasSelection || hasQuery)
+                    ? "transition-[opacity,filter] duration-150 ease-out " + stateClasses
+                    : ""
+                } ${isMe ? "items-end" : "items-start"} ${activeReactions.length > 0 ? "mb-2.5" : ""}`;
+
+                return (
+                  <div key={msg.tempId || msg._id} className="w-full flex flex-col gap-2">
+                    {isDifferentDay && msgDate && (
+                      <div className="flex justify-center items-center my-3.5 select-none">
+                        <div className="bg-black/20 backdrop-blur-md border border-white/[0.04] text-zinc-400 text-[10px] sm:text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
+                          {formatDividerDate(msg.createdAt)}
+                        </div>
+                      </div>
+                    )}
+                    {isHistorical ? (
+                      <div
+                        id={`msg-${msg._id}`}
+                        onMouseDown={() => startPressTimer(msg)}
+                        onMouseUp={cancelPressTimer}
+                        onMouseLeave={cancelPressTimer}
+                        onTouchStart={() => startPressTimer(msg)}
+                        onTouchEnd={cancelPressTimer}
+                        onDoubleClick={() => setSelectedMessage(msg)}
+                        className={containerClasses}
+                      >
+                        {renderBubbleContent()}
+                      </div>
+                    ) : (
+                      <motion.div
+                        id={`msg-${msg._id}`}
+                        initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                        onMouseDown={() => startPressTimer(msg)}
+                        onMouseUp={cancelPressTimer}
+                        onMouseLeave={cancelPressTimer}
+                        onTouchStart={() => startPressTimer(msg)}
+                        onTouchEnd={cancelPressTimer}
+                        onDoubleClick={() => setSelectedMessage(msg)}
+                        className={containerClasses}
+                      >
+                        {renderBubbleContent()}
+                      </motion.div>
+                    )}
+                  </div>
                 );
               })}
             </AnimatePresence>
@@ -934,6 +1074,16 @@ function ChatContainer() {
           setMessageToForward(null);
         }}
         messageToForward={messageToForward}
+      />
+
+      {/* VOTERS MODAL */}
+      <VotersModal
+        isOpen={isVotersModalOpen}
+        onClose={() => {
+          setIsVotersModalOpen(false);
+          setSelectedPoll(null);
+        }}
+        poll={selectedPoll}
       />
     </div>
   );
