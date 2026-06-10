@@ -44,7 +44,7 @@ export const useChatStore = create((set, get) => ({
   replyToMessage: null,
   isUsersLoading: false,
   isMessagesLoading: false,
-  isSidebarCollapsed: JSON.parse(localStorage.getItem("isSidebarCollapsed")) === true,
+  isSidebarCollapsed: (JSON.parse(localStorage.getItem("isSidebarCollapsed")) === true) && (typeof window !== "undefined" ? window.innerWidth >= 768 : true),
   isSoundEnabled: JSON.parse(localStorage.getItem("isSoundEnabled")) === true,
   searchQuery: "",
   isMsgSearchOpen: false,
@@ -55,7 +55,9 @@ export const useChatStore = create((set, get) => ({
   toggleMsgSearch: () => set({ isMsgSearchOpen: !get().isMsgSearchOpen }),
 
   toggleSidebar: () => {
-    const nextVal = !get().isSidebarCollapsed;
+    if (typeof window !== "undefined" && window.innerWidth < 768) return;
+    const currentStored = JSON.parse(localStorage.getItem("isSidebarCollapsed")) === true;
+    const nextVal = !currentStored;
     localStorage.setItem("isSidebarCollapsed", nextVal);
     set({ isSidebarCollapsed: nextVal });
   },
@@ -952,3 +954,13 @@ export const useChatStore = create((set, get) => ({
     socket.off("groupDeleted");
   },
 }));
+
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", () => {
+    const isMobile = window.innerWidth < 768;
+    const currentStored = JSON.parse(localStorage.getItem("isSidebarCollapsed")) === true;
+    useChatStore.setState({
+      isSidebarCollapsed: isMobile ? false : currentStored
+    });
+  });
+}
