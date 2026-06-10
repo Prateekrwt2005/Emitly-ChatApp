@@ -4,7 +4,7 @@ import { useChatStore } from "../store/useChatStore";
 import toast from "react-hot-toast";
 import { 
   ImageIcon, SendIcon, XIcon, MicIcon, CameraIcon, Trash2Icon, SmileIcon, 
-  Eye, EyeOff, CalendarIcon, BarChart2Icon, Loader2Icon 
+  Eye, EyeOff, CalendarIcon, BarChart2Icon, Loader2Icon, PlusIcon
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import CameraModal from "./CameraModal";
@@ -22,6 +22,7 @@ function MessageInput() {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isPollOpen, setIsPollOpen] = useState(false);
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
 
   // Scheduled message states
   const [scheduledAt, setScheduledAt] = useState(null);
@@ -38,6 +39,7 @@ function MessageInput() {
   const shouldSendRef = useRef(true);
   const emojiPickerRef = useRef(null);
   const schedulePickerRef = useRef(null);
+  const actionsMenuRef = useRef(null);
 
   const { sendMessage, isSoundEnabled, selectedUser, selectedGroup, replyToMessage, setReplyToMessage } = useChatStore();
   const { authUser } = useAuthStore();
@@ -167,6 +169,9 @@ function MessageInput() {
       if (schedulePickerRef.current && !schedulePickerRef.current.contains(event.target)) {
         setShowSchedulePicker(false);
       }
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target)) {
+        setIsActionsMenuOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -264,8 +269,8 @@ function MessageInput() {
 
       {/* MARKDOWN FORMATTING TOOLBAR */}
       {!isBlockedByMe && !isRecording && (
-        <div className="flex gap-1.5 mb-2 px-1 text-zinc-500 text-xs items-center select-none overflow-x-auto whitespace-nowrap">
-          <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-wider mr-1.5">Format:</span>
+        <div className="flex gap-1.5 mb-2 px-1 text-zinc-500 text-xs items-center select-none overflow-x-auto whitespace-nowrap scrollbar-none [&::-webkit-scrollbar]:hidden">
+          <span className="hidden sm:inline-block text-[10px] text-zinc-600 font-bold uppercase tracking-wider mr-1.5">Format:</span>
           <button
             type="button"
             onClick={() => applyFormatting("**", "**")}
@@ -372,8 +377,99 @@ function MessageInput() {
           ) : (
             /* NORMAL VIEW */
             <>
-              {/* LEFT ACTIONS GROUP */}
-              <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+              {/* MOBILE "+" MENU (Only visible on mobile) */}
+              <div ref={actionsMenuRef} className="flex md:hidden relative">
+                <button
+                  type="button"
+                  onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
+                  disabled={isBlockedByMe}
+                  className={`p-1.5 rounded-lg transition-all ${
+                    isActionsMenuOpen ? "text-white bg-white/10 rotate-45" : "text-[#444] hover:text-white"
+                  }`}
+                  title="More Actions"
+                >
+                  <PlusIcon className="w-4.5 h-4.5 transition-transform" />
+                </button>
+
+                {isActionsMenuOpen && (
+                  <div className="absolute bottom-full mb-3 left-0 bg-[#0d0d0f]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-2.5 shadow-2xl z-40 min-w-[200px] flex flex-col gap-1.5 animate-fadeIn select-none">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCameraOpen(true);
+                        setIsActionsMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-3.5 py-2 text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl text-left text-xs transition-all"
+                    >
+                      <CameraIcon className="w-4 h-4 text-zinc-500" />
+                      <span>Camera Photo</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        fileInputRef.current?.click();
+                        setIsActionsMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-3.5 py-2 text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl text-left text-xs transition-all"
+                    >
+                      <ImageIcon className="w-4 h-4 text-zinc-500" />
+                      <span>Attach Image</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPollOpen(true);
+                        setIsActionsMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-3.5 py-2 text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl text-left text-xs transition-all"
+                    >
+                      <BarChart2Icon className="w-4 h-4 text-zinc-500" />
+                      <span>Create Poll</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSchedulePicker(true);
+                        setIsActionsMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-3.5 py-2 text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl text-left text-xs transition-all"
+                    >
+                      <CalendarIcon className="w-4 h-4 text-zinc-500" />
+                      <span>Schedule Message</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEmojiPickerOpen(true);
+                        setIsActionsMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-3.5 py-2 text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl text-left text-xs transition-all"
+                    >
+                      <SmileIcon className="w-4 h-4 text-zinc-500" />
+                      <span>Choose Emoji</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsViewOnce(!isViewOnce);
+                        setIsActionsMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-3.5 py-2 text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl text-left text-xs transition-all"
+                    >
+                      {isViewOnce ? <EyeOff className="w-4 h-4 text-amber-500" /> : <Eye className="w-4 h-4 text-zinc-500" />}
+                      <span>{isViewOnce ? "Disable View Once" : "Enable View Once"}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* LEFT ACTIONS GROUP (Only visible on desktop) */}
+              <div className="hidden md:flex items-center gap-0.5 sm:gap-1 shrink-0">
                 {/* CAMERA BUTTON */}
                 <button
                   type="button"
@@ -497,12 +593,12 @@ function MessageInput() {
 
               {/* RIGHT ACTIONS GROUP */}
               <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-                {/* VIEW-ONCE TOGGLE */}
+                {/* VIEW-ONCE TOGGLE (Desktop only) */}
                 <button
                   type="button"
                   onClick={() => setIsViewOnce(!isViewOnce)}
                   disabled={isBlockedByMe}
-                  className={`p-1.5 rounded-lg transition shrink-0 disabled:opacity-20 ${
+                  className={`hidden md:inline-flex p-1.5 rounded-lg transition shrink-0 disabled:opacity-20 ${
                     isViewOnce ? "text-amber-500" : "text-[#444] hover:text-white"
                   }`}
                   title={isViewOnce ? "View-once enabled" : "Enable view-once"}
