@@ -18,6 +18,7 @@ import FullScreenReactionCanvas from "./components/FullScreenReactionCanvas";
 function App() {
   const { checkAuth, isCheckingAuth, authUser } = useAuthStore();
   const [showSplash, setShowSplash] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -35,6 +36,7 @@ function App() {
       } else {
         document.documentElement.style.setProperty("--vvh", `${window.innerHeight}px`);
       }
+      setIsMobile(window.innerWidth < 768);
     };
 
     updateViewportHeight();
@@ -87,93 +89,101 @@ function App() {
             <div className="absolute inset-0 bg-[#0b0d10]" />
 
             {/* Mouse Spotlight */}
-            <motion.div
-              style={{
-                x: mouseX,
-                y: mouseY,
-              }}
-              className="
-                fixed
-                w-[400px]
-                h-[400px]
-                rounded-full
-                bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.035)_0%,transparent_70%)]
-                pointer-events-none
-                z-0
-              "
-            />
+            {!isMobile && (
+              <motion.div
+                style={{
+                  x: mouseX,
+                  y: mouseY,
+                }}
+                className="
+                  fixed
+                  w-[400px]
+                  h-[400px]
+                  rounded-full
+                  bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.035)_0%,transparent_70%)]
+                  pointer-events-none
+                  z-0
+                "
+              />
+            )}
 
             {/* Top Glow */}
-            <motion.div
-              animate={{
-                x: [0, 30, 0],
-                y: [0, -20, 0],
-                scale: [1, 1.15, 1],
-                opacity: [0.08, 0.16, 0.08],
-              }}
-              transition={{
-                duration: 15,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              className="
-                absolute
-                -top-60
-                -left-60
-                w-[900px]
-                h-[900px]
-                rounded-full
-                bg-[radial-gradient(circle_at_center,rgba(212,212,216,0.12)_0%,transparent_70%)]
-              "
-            />
+            {!isMobile && (
+              <motion.div
+                animate={{
+                  x: [0, 30, 0],
+                  y: [0, -20, 0],
+                  scale: [1, 1.15, 1],
+                  opacity: [0.08, 0.16, 0.08],
+                }}
+                transition={{
+                  duration: 15,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="
+                  absolute
+                  -top-60
+                  -left-60
+                  w-[900px]
+                  h-[900px]
+                  rounded-full
+                  bg-[radial-gradient(circle_at_center,rgba(212,212,216,0.12)_0%,transparent_70%)]
+                "
+              />
+            )}
 
             {/* Bottom Glow */}
-            <motion.div
-              animate={{
-                x: [0, -40, 0],
-                y: [0, 20, 0],
-                scale: [1, 1.12, 1],
-                opacity: [0.05, 0.12, 0.05],
-              }}
-              transition={{
-                duration: 18,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              className="
-                absolute
-                -bottom-60
-                -right-60
-                w-[900px]
-                h-[900px]
-                rounded-full
-                bg-[radial-gradient(circle_at_center,rgba(228,228,231,0.09)_0%,transparent_70%)]
-              "
-            />
+            {!isMobile && (
+              <motion.div
+                animate={{
+                  x: [0, -40, 0],
+                  y: [0, 20, 0],
+                  scale: [1, 1.12, 1],
+                  opacity: [0.05, 0.12, 0.05],
+                }}
+                transition={{
+                  duration: 18,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="
+                  absolute
+                  -bottom-60
+                  -right-60
+                  w-[900px]
+                  h-[900px]
+                  rounded-full
+                  bg-[radial-gradient(circle_at_center,rgba(228,228,231,0.09)_0%,transparent_70%)]
+                "
+              />
+            )}
 
             {/* Center Ambient Glow */}
-            <motion.div
-              animate={{
-                scale: [1, 1.12, 1],
-                opacity: [0.03, 0.08, 0.03],
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              className="
-                absolute
-                top-1/2
-                left-1/2
-                -translate-x-1/2
-                -translate-y-1/2
-                w-[1400px]
-                h-[700px]
-                rounded-full
-                bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.06)_0%,transparent_70%)]
-              "
-            />
+            {!isMobile && (
+              <motion.div
+                animate={{
+                  scale: [1, 1.12, 1],
+                  opacity: [0.03, 0.08, 0.03],
+                }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="
+                  absolute
+                  top-1/2
+                  left-1/2
+                  -translate-x-1/2
+                  -translate-y-1/2
+                  w-[1400px]
+                  h-[700px]
+                  rounded-full
+                  bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.06)_0%,transparent_70%)]
+                "
+              />
+            )}
 
             {/* Grid */}
             <div
