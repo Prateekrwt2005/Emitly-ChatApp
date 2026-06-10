@@ -666,7 +666,7 @@ function ChatContainer() {
       >
         {/* Sticky Chat search panel */}
         {isMsgSearchOpen && (
-          <div className="sticky top-0 z-20 w-full max-w-full px-1 md:px-2 mb-4">
+          <div className="sticky top-0 z-20 w-full max-w-md mx-auto mb-4 px-1 md:px-2">
             <div className="flex items-center bg-[#0d0d0f]/90 backdrop-blur-xl border border-white/[0.08] rounded-2xl px-3 py-2 shadow-lg gap-2">
               <SearchIcon className="w-4 h-4 text-zinc-500 mr-1 flex-shrink-0" />
               <input

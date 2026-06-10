@@ -186,12 +186,16 @@ function ChatHeader() {
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
 
-        <div className="relative">
+        <div className="relative flex-shrink-0 w-9 h-9">
           {displayAvatar ? (
             <img
               src={displayAvatar}
               alt={displayName}
               className={`w-9 h-9 object-cover border border-white/10 ${isGroup ? "rounded-xl" : "rounded-full"}`}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "/avatar.png";
+              }}
             />
           ) : isGroup ? (
             <div className="w-9 h-9 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-zinc-300 font-bold text-sm">
