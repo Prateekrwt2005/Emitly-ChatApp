@@ -46,6 +46,14 @@ function MessageInput() {
   const activeChat = selectedUser || selectedGroup;
   const isBlockedByMe = selectedUser ? authUser?.blockedUsers?.includes(selectedUser?._id) : false;
 
+  const handleBlur = () => {
+    // Reset window scroll offset to fix mobile keyboard layout viewport shifts
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      window.dispatchEvent(new Event("resize"));
+    }, 100);
+  };
+
   const handleSendMessage = (e) => {
     if (e) e.preventDefault();
     if (!text.trim() && !imagePreview) return;
@@ -592,6 +600,7 @@ function MessageInput() {
                   isSoundEnabled && playRandomKeyStrokeSound();
                   handleTyping();
                 }}
+                onBlur={handleBlur}
                 placeholder={isBlockedByMe ? "You have blocked this user" : "Message..."}
                 className="flex-1 bg-transparent outline-none text-base md:text-sm text-[#e0e0e0] placeholder:text-[#444] disabled:opacity-50 px-1 sm:px-2"
               />
