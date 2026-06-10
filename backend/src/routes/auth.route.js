@@ -15,7 +15,11 @@ router.post("/logout", logout);
 
 router.put("/update-profile",protectedRoute ,updateProfile);
 
-router.get("/check",protectedRoute,(req,res)=>
-    res.status(200).json(req.user));
+router.get("/check", protectedRoute, (req, res) => {
+  res.status(200).json({
+    ...req.user.toObject(),
+    token: req.cookies.token,
+  });
+});
 
 export default router;

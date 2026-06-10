@@ -49,6 +49,7 @@ generateToken(savedUser._id, res);
       profilePic: savedUser.profilePic,
       bio: savedUser.bio || "",
       customStatus: savedUser.customStatus || { emoji: "", text: "" },
+      token,
     });
 
   } catch (err) {
@@ -81,6 +82,7 @@ export const login = async (req, res) => {
       profilePic: user.profilePic,
       bio: user.bio || "",
       customStatus: user.customStatus || { emoji: "", text: "" },
+      token,
     });
   } catch (error) {
     console.error("Error in login controller:", error);

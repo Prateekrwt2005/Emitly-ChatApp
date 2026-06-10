@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { motion } from "framer-motion";
 import { PlusIcon, HashIcon } from "lucide-react";
 import { useChatStore } from "../store/useChatStore";
@@ -23,9 +24,23 @@ function ChatsList() {
     setSelectedGroup,
     getGroups,
     isGroupsLoading,
-  } = useChatStore();
+  } = useChatStore(useShallow((state) => ({
+    getMyChatPartners: state.getMyChatPartners,
+    chats: state.chats,
+    isUsersLoading: state.isUsersLoading,
+    setSelectedUser: state.setSelectedUser,
+    selectedUser: state.selectedUser,
+    isSidebarCollapsed: state.isSidebarCollapsed,
+    searchQuery: state.searchQuery,
+    typingUsers: state.typingUsers,
+    groups: state.groups,
+    selectedGroup: state.selectedGroup,
+    setSelectedGroup: state.setSelectedGroup,
+    getGroups: state.getGroups,
+    isGroupsLoading: state.isGroupsLoading,
+  })));
 
-  const { onlineUsers } = useAuthStore();
+  const { onlineUsers } = useAuthStore(useShallow((state) => ({ onlineUsers: state.onlineUsers })));
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
 
   useEffect(() => {
@@ -159,7 +174,7 @@ function ChatsList() {
                           </span>
                         </span>
                       ) : (
-                        <span className="text-xs text-[#555] truncate leading-none flex items-center gap-1">
+                        <span className="text-xs text-zinc-400 truncate leading-none flex items-center gap-1">
                           {chat.customStatus?.emoji && <span>{chat.customStatus.emoji}</span>}
                           <span className="truncate">{chat.customStatus?.text || (isOnline ? "Online" : "Offline")}</span>
                         </span>
@@ -272,7 +287,7 @@ function ChatsList() {
                     <HashIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
                     <span className="truncate">{group.name}</span>
                   </p>
-                  <p className="text-xs text-[#555] truncate mt-0.5 leading-none">
+                  <p className="text-xs text-zinc-400 truncate mt-0.5 leading-none">
                     {group.description || `${group.members.length} members`}
                   </p>
                 </div>

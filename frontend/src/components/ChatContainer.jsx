@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
@@ -196,9 +197,33 @@ function ChatContainer() {
     isRightSidebarOpen,
     toggleReaction,
     votePoll,
-  } = useChatStore();
+  } = useChatStore(useShallow((state) => ({
+    selectedUser: state.selectedUser,
+    selectedGroup: state.selectedGroup,
+    getMessagesByUserId: state.getMessagesByUserId,
+    getGroupMessages: state.getGroupMessages,
+    messages: state.messages,
+    isMessagesLoading: state.isMessagesLoading,
+    subscribeToMessages: state.subscribeToMessages,
+    unsubscribeFromMessages: state.unsubscribeFromMessages,
+    isMsgSearchOpen: state.isMsgSearchOpen,
+    msgSearchQuery: state.msgSearchQuery,
+    setMsgSearchQuery: state.setMsgSearchQuery,
+    selectedMessage: state.selectedMessage,
+    setSelectedMessage: state.setSelectedMessage,
+    togglePinMessage: state.togglePinMessage,
+    replyToMessage: state.replyToMessage,
+    chatWallpaper: state.chatWallpaper,
+    isRightSidebarOpen: state.isRightSidebarOpen,
+    toggleReaction: state.toggleReaction,
+    votePoll: state.votePoll,
+  })));
 
-  const { authUser, socket, isSocketConnected } = useAuthStore();
+  const { authUser, socket, isSocketConnected } = useAuthStore(useShallow((state) => ({
+    authUser: state.authUser,
+    socket: state.socket,
+    isSocketConnected: state.isSocketConnected,
+  })));
   const messageEndRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const mountedAtRef = useRef(Date.now());

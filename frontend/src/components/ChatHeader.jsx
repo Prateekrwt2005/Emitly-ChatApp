@@ -1,4 +1,5 @@
 import { XIcon, ArrowLeftIcon, SearchIcon, Pin, Trash2, Reply, Forward, Palette, Info, Ban, HashIcon } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 import { useChatStore } from "../store/useChatStore";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
@@ -27,8 +28,32 @@ function ChatHeader() {
     initiateSecretChat,
     closeSecretChat,
     deleteGroup,
-  } = useChatStore();
-  const { onlineUsers, authUser } = useAuthStore();
+  } = useChatStore(useShallow((state) => ({
+    selectedUser: state.selectedUser,
+    setSelectedUser: state.setSelectedUser,
+    selectedGroup: state.selectedGroup,
+    setSelectedGroup: state.setSelectedGroup,
+    typingUsers: state.typingUsers,
+    isMsgSearchOpen: state.isMsgSearchOpen,
+    toggleMsgSearch: state.toggleMsgSearch,
+    setMsgSearchQuery: state.setMsgSearchQuery,
+    selectedMessage: state.selectedMessage,
+    setSelectedMessage: state.setSelectedMessage,
+    deleteMessage: state.deleteMessage,
+    togglePinMessage: state.togglePinMessage,
+    setReplyToMessage: state.setReplyToMessage,
+    isRightSidebarOpen: state.isRightSidebarOpen,
+    toggleRightSidebar: state.toggleRightSidebar,
+    blockUser: state.blockUser,
+    activeSecretChat: state.activeSecretChat,
+    initiateSecretChat: state.initiateSecretChat,
+    closeSecretChat: state.closeSecretChat,
+    deleteGroup: state.deleteGroup,
+  })));
+  const { onlineUsers, authUser } = useAuthStore(useShallow((state) => ({
+    onlineUsers: state.onlineUsers,
+    authUser: state.authUser,
+  })));
 
   const isGroup = !!selectedGroup;
   const activeChat = selectedGroup || selectedUser;
@@ -71,7 +96,7 @@ function ChatHeader() {
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => setSelectedMessage(null)}
-            className="p-2.5 rounded-xl text-[#555] hover:text-[#ececec] hover:bg-white/5 transition-all flex-shrink-0"
+            className="p-2.5 rounded-xl text-zinc-400 hover:text-[#ececec] hover:bg-white/5 transition-all flex-shrink-0"
             title="Cancel selection"
           >
             <XIcon className="w-5 h-5" />
@@ -89,7 +114,7 @@ function ChatHeader() {
               setReplyToMessage(selectedMessage);
               setSelectedMessage(null);
             }}
-            className="p-2.5 rounded-xl text-[#555] hover:text-[#ececec] hover:bg-white/5 transition-all flex items-center justify-center flex-shrink-0"
+            className="p-2.5 rounded-xl text-zinc-400 hover:text-[#ececec] hover:bg-white/5 transition-all flex items-center justify-center flex-shrink-0"
             title="Reply to message"
           >
             <Reply className="w-4 h-4" />
@@ -105,7 +130,7 @@ function ChatHeader() {
               );
               setSelectedMessage(null);
             }}
-            className="p-2.5 rounded-xl text-[#555] hover:text-[#ececec] hover:bg-white/5 transition-all flex items-center justify-center flex-shrink-0"
+            className="p-2.5 rounded-xl text-zinc-400 hover:text-[#ececec] hover:bg-white/5 transition-all flex items-center justify-center flex-shrink-0"
             title="Forward message"
           >
             <Forward className="w-4 h-4" />
@@ -117,7 +142,7 @@ function ChatHeader() {
               togglePinMessage(selectedMessage._id);
               setSelectedMessage(null);
             }}
-            className="p-2.5 rounded-xl text-[#555] hover:text-[#ececec] hover:bg-white/5 transition-all flex items-center justify-center flex-shrink-0"
+            className="p-2.5 rounded-xl text-zinc-400 hover:text-[#ececec] hover:bg-white/5 transition-all flex items-center justify-center flex-shrink-0"
             title={selectedMessage.isPinned ? "Unpin message" : "Pin message"}
           >
             <Pin className={`w-4 h-4 ${selectedMessage.isPinned ? "fill-[#ececec] text-[#ececec]" : ""}`} />
@@ -156,7 +181,7 @@ function ChatHeader() {
         {/* Mobile Back Button */}
         <button
           onClick={handleClose}
-          className="md:hidden p-2.5 rounded-xl text-[#555] hover:text-[#ececec] hover:bg-white/5 transition-all flex-shrink-0"
+          className="md:hidden p-2.5 rounded-xl text-zinc-400 hover:text-[#ececec] hover:bg-white/5 transition-all flex-shrink-0"
         >
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
@@ -216,7 +241,7 @@ function ChatHeader() {
             )}
           </h3>
           {isGroup ? (
-            <p className="text-[#555] text-xs mt-0.5 truncate max-w-[200px]">
+            <p className="text-zinc-400 text-xs mt-0.5 truncate max-w-[200px]">
               {selectedGroup.members?.length || 0} members
             </p>
           ) : isTyping ? (
@@ -229,7 +254,7 @@ function ChatHeader() {
               </span>
             </p>
           ) : (
-            <p className="text-[#555] text-xs mt-0.5 truncate max-w-[200px]">
+            <p className="text-zinc-400 text-xs mt-0.5 truncate max-w-[200px]">
               {selectedUser.customStatus?.text ? (
                 <span className="flex items-center gap-1">
                   {selectedUser.customStatus.emoji && <span>{selectedUser.customStatus.emoji}</span>}
@@ -252,7 +277,7 @@ function ChatHeader() {
             className={`p-2.5 rounded-xl transition-all ${
               isMsgSearchOpen
                 ? "text-white bg-white/10"
-                : "text-[#555] hover:text-[#ececec] hover:bg-white/5"
+                : "text-zinc-400 hover:text-[#ececec] hover:bg-white/5"
             }`}
           >
             <SearchIcon className="w-4 h-4" />
@@ -278,7 +303,7 @@ function ChatHeader() {
                   ? "text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
                   : isSecretPending
                     ? "text-amber-400 bg-amber-500/10 animate-pulse"
-                    : "text-[#555] hover:text-[#ececec] hover:bg-white/5"
+                    : "text-zinc-400 hover:text-[#ececec] hover:bg-white/5"
               }`}
             >
               {isSecretActive || isSecretPending ? "🔒" : "🔓"}
@@ -296,7 +321,7 @@ function ChatHeader() {
             className={`p-2.5 rounded-xl transition-all ${
               isRightSidebarOpen
                 ? "text-white bg-white/10"
-                : "text-[#555] hover:text-[#ececec] hover:bg-white/5"
+                : "text-zinc-400 hover:text-[#ececec] hover:bg-white/5"
             }`}
           >
             <Info className="w-4 h-4" />
@@ -314,7 +339,7 @@ function ChatHeader() {
               className={`p-2.5 rounded-xl transition-all ${
                 isBlocked
                   ? "text-red-500 bg-red-500/10 hover:bg-red-500/20"
-                  : "text-[#555] hover:text-red-400 hover:bg-white/5"
+                  : "text-zinc-400 hover:text-red-400 hover:bg-white/5"
               }`}
             >
               <Ban className="w-4 h-4" />
@@ -334,7 +359,7 @@ function ChatHeader() {
                   deleteGroup(selectedGroup._id);
                 }
               }}
-              className="p-2.5 rounded-xl text-[#555] hover:text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center flex-shrink-0"
+              className="p-2.5 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center flex-shrink-0"
               title="Delete channel"
             >
               <Trash2 className="w-4 h-4" />
@@ -349,7 +374,7 @@ function ChatHeader() {
         <div className="relative group flex items-center">
           <button
             onClick={() => setIsWallpaperOpen(true)}
-            className="p-2.5 rounded-xl text-[#555] hover:text-[#ececec] hover:bg-white/5 transition-all"
+            className="p-2.5 rounded-xl text-zinc-400 hover:text-[#ececec] hover:bg-white/5 transition-all"
           >
             <Palette className="w-4 h-4" />
           </button>

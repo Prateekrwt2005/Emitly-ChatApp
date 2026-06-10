@@ -1,9 +1,14 @@
+import { useShallow } from "zustand/react/shallow";
 import { motion } from "framer-motion";
 import { MessageSquareIcon, UsersIcon } from "lucide-react";
 import { useChatStore } from "../store/useChatStore";
 
 function ActiveTabSwitch() {
-  const { activeTab, setActiveTab, isSidebarCollapsed } = useChatStore();
+  const { activeTab, setActiveTab, isSidebarCollapsed } = useChatStore(useShallow((state) => ({
+    activeTab: state.activeTab,
+    setActiveTab: state.setActiveTab,
+    isSidebarCollapsed: state.isSidebarCollapsed,
+  })));
 
   if (isSidebarCollapsed) {
     return (
@@ -18,7 +23,7 @@ function ActiveTabSwitch() {
               <button
                 onClick={() => setActiveTab(id)}
                 className={`relative p-2 rounded-xl transition-all ${
-                  isActive ? "text-white" : "text-[#555] hover:text-[#888]"
+                  isActive ? "text-white" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 {isActive && (
@@ -49,7 +54,7 @@ function ActiveTabSwitch() {
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`relative flex-1 py-2 md:py-1.5 text-sm md:text-xs font-medium rounded-lg capitalize transition-all ${
-              isActive ? "text-white" : "text-[#555] hover:text-[#888]"
+              isActive ? "text-white" : "text-zinc-400 hover:text-white"
             }`}
           >
             {isActive && (

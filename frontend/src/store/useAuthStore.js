@@ -87,6 +87,9 @@ export const useAuthStore = create((set, get) => ({
 
     const socket = io(BASE_URL, {
       withCredentials: true, // this ensures cookies are sent with the connection
+      auth: {
+        token: authUser.token, // pass the token explicitly for cross-domain mobile fallbacks
+      },
     });
 
     socket.connect();

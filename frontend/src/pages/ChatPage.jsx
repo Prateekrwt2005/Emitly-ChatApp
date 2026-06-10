@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useChatStore } from "../store/useChatStore";
 import BorderAnimatedContainer from "../components/BorderAnimatedContainer";
 import ProfileHeader from "../components/ProfileHeader";
@@ -9,7 +10,16 @@ import ChatContainer from "../components/ChatContainer";
 import NoConversationPlaceholder from "../components/NoConversationPlaceholder";
 import { SearchIcon } from "lucide-react";
 function ChatPage() {
-  const { activeTab, selectedUser, selectedGroup, isSidebarCollapsed, searchQuery, setSearchQuery } = useChatStore();
+  const { activeTab, selectedUser, selectedGroup, isSidebarCollapsed, searchQuery, setSearchQuery } = useChatStore(
+    useShallow((state) => ({
+      activeTab: state.activeTab,
+      selectedUser: state.selectedUser,
+      selectedGroup: state.selectedGroup,
+      isSidebarCollapsed: state.isSidebarCollapsed,
+      searchQuery: state.searchQuery,
+      setSearchQuery: state.setSearchQuery,
+    }))
+  );
 
   useEffect(() => {
     // Lock body scroll on mobile viewports to prevent keyboard/layout shifts.

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import useKeyboardSound from "../hooks/useKeyboardSound";
 import { useChatStore } from "../store/useChatStore";
 import toast from "react-hot-toast";
@@ -41,8 +42,17 @@ function MessageInput() {
   const schedulePickerRef = useRef(null);
   const actionsMenuRef = useRef(null);
 
-  const { sendMessage, isSoundEnabled, selectedUser, selectedGroup, replyToMessage, setReplyToMessage } = useChatStore();
-  const { authUser } = useAuthStore();
+  const { sendMessage, isSoundEnabled, selectedUser, selectedGroup, replyToMessage, setReplyToMessage } = useChatStore(
+    useShallow((state) => ({
+      sendMessage: state.sendMessage,
+      isSoundEnabled: state.isSoundEnabled,
+      selectedUser: state.selectedUser,
+      selectedGroup: state.selectedGroup,
+      replyToMessage: state.replyToMessage,
+      setReplyToMessage: state.setReplyToMessage,
+    }))
+  );
+  const { authUser } = useAuthStore(useShallow((state) => ({ authUser: state.authUser })));
   const activeChat = selectedUser || selectedGroup;
   const isBlockedByMe = selectedUser ? authUser?.blockedUsers?.includes(selectedUser?._id) : false;
 
@@ -401,7 +411,7 @@ function MessageInput() {
                   onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
                   disabled={isBlockedByMe}
                   className={`p-1.5 rounded-lg transition-all ${
-                    isActionsMenuOpen ? "text-white bg-white/10 rotate-45" : "text-[#444] hover:text-white"
+                    isActionsMenuOpen ? "text-white bg-white/10 rotate-45" : "text-zinc-400 hover:text-white"
                   }`}
                   title="More Actions"
                 >
@@ -492,7 +502,7 @@ function MessageInput() {
                   type="button"
                   onClick={() => setIsCameraOpen(true)}
                   disabled={isBlockedByMe}
-                  className="p-1.5 rounded-lg text-[#444] hover:text-white transition disabled:opacity-20 disabled:hover:text-[#444]"
+                  className="p-1.5 rounded-lg text-zinc-400 hover:text-white transition disabled:opacity-20 disabled:hover:text-zinc-400"
                   title="Camera Photo"
                 >
                   <CameraIcon className="w-4 h-4" />
@@ -504,7 +514,7 @@ function MessageInput() {
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isBlockedByMe}
                   className={`p-1.5 rounded-lg transition disabled:opacity-20 ${
-                    imagePreview ? "text-white" : "text-[#444] hover:text-white"
+                    imagePreview ? "text-white" : "text-zinc-400 hover:text-white"
                   }`}
                   title="Attach Image"
                 >
@@ -516,7 +526,7 @@ function MessageInput() {
                   type="button"
                   onClick={() => setIsPollOpen(true)}
                   disabled={isBlockedByMe}
-                  className="p-1.5 rounded-lg text-[#444] hover:text-white transition disabled:opacity-20 disabled:hover:text-[#444]"
+                  className="p-1.5 rounded-lg text-zinc-400 hover:text-white transition disabled:opacity-20 disabled:hover:text-zinc-400"
                   title="Create Poll"
                 >
                   <BarChart2Icon className="w-4 h-4" />
@@ -529,7 +539,7 @@ function MessageInput() {
                     onClick={() => setShowSchedulePicker(!showSchedulePicker)}
                     disabled={isBlockedByMe}
                     className={`p-1.5 rounded-lg transition disabled:opacity-20 ${
-                      scheduledAt ? "text-amber-500 animate-pulse" : "text-[#444] hover:text-white"
+                      scheduledAt ? "text-amber-500 animate-pulse" : "text-zinc-400 hover:text-white"
                     }`}
                     title="Schedule Message"
                   >
@@ -581,7 +591,7 @@ function MessageInput() {
                     onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
                     disabled={isBlockedByMe}
                     className={`p-1.5 rounded-lg transition disabled:opacity-20 ${
-                      isEmojiPickerOpen ? "text-white" : "text-[#444] hover:text-white"
+                      isEmojiPickerOpen ? "text-white" : "text-zinc-400 hover:text-white"
                     }`}
                     title="Choose Emoji"
                   >
@@ -611,7 +621,7 @@ function MessageInput() {
                 }}
                 onBlur={handleBlur}
                 placeholder={isBlockedByMe ? "You have blocked this user" : "Message..."}
-                className="flex-1 bg-transparent outline-none text-base md:text-sm text-[#e0e0e0] placeholder:text-[#444] disabled:opacity-50 px-1 sm:px-2"
+                className="flex-1 bg-transparent outline-none text-base md:text-sm text-[#e0e0e0] placeholder:text-zinc-500 disabled:opacity-50 px-1 sm:px-2"
               />
 
               {/* RIGHT ACTIONS GROUP */}
@@ -622,7 +632,7 @@ function MessageInput() {
                   onClick={() => setIsViewOnce(!isViewOnce)}
                   disabled={isBlockedByMe}
                   className={`hidden md:inline-flex p-1.5 rounded-lg transition shrink-0 disabled:opacity-20 ${
-                    isViewOnce ? "text-amber-500" : "text-[#444] hover:text-white"
+                    isViewOnce ? "text-amber-500" : "text-zinc-400 hover:text-white"
                   }`}
                   title={isViewOnce ? "View-once enabled" : "Enable view-once"}
                 >
@@ -635,7 +645,7 @@ function MessageInput() {
                     type="button"
                     onClick={startRecording}
                     disabled={isBlockedByMe}
-                    className="p-1.5 rounded-lg text-[#444] hover:text-white transition disabled:opacity-20 disabled:hover:text-[#444]"
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-white transition disabled:opacity-20 disabled:hover:text-zinc-400"
                     title="Record Voice Note"
                   >
                     <MicIcon className="w-4 h-4" />

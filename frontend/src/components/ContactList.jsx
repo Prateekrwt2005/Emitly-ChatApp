@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { motion } from "framer-motion";
 import { useChatStore } from "../store/useChatStore";
 import UsersLoadingSkeleton from "./UsersLoadingSkeleton";
@@ -13,9 +14,20 @@ function ContactList() {
     selectedUser,
     isSidebarCollapsed,
     searchQuery,
-  } = useChatStore();
+  } = useChatStore(useShallow((state) => ({
+    getAllContacts: state.getAllContacts,
+    allContacts: state.allContacts,
+    setSelectedUser: state.setSelectedUser,
+    isUsersLoading: state.isUsersLoading,
+    selectedUser: state.selectedUser,
+    isSidebarCollapsed: state.isSidebarCollapsed,
+    searchQuery: state.searchQuery,
+  })));
 
-  const { onlineUsers, authUser } = useAuthStore();
+  const { onlineUsers, authUser } = useAuthStore(useShallow((state) => ({
+    onlineUsers: state.onlineUsers,
+    authUser: state.authUser,
+  })));
 
   useEffect(() => {
     getAllContacts();
@@ -106,7 +118,7 @@ function ContactList() {
                   )}
                 </p>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-xs text-[#555] truncate leading-none flex items-center gap-1">
+                  <span className="text-xs text-zinc-400 truncate leading-none flex items-center gap-1">
                     {contact.customStatus?.emoji && <span>{contact.customStatus.emoji}</span>}
                     <span className="truncate">{isBlocked ? "Blocked" : contact.customStatus?.text || (isOnline ? "Online" : "Offline")}</span>
                   </span>

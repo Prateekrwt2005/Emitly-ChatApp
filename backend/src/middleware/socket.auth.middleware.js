@@ -4,10 +4,15 @@ import { ENV } from '../lib/env.js';
 
 export const socketAuthMiddleware = async (socket, next) => {
     try{
-        const token = socket.handshake.headers.cookie
+        let token = socket.handshake.headers.cookie
         ?.split("; ")
         .find((row) => row.startsWith("token="))
         ?.split("=")[1];
+
+        if (!token) {
+            token = socket.handshake.auth?.token;
+        }
+
         if (!token) {
             console.log("No token provided in socket handshake");
             return next(new Error("Authentication error: No token provided"));

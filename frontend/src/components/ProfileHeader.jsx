@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { LogOutIcon, VolumeOffIcon, Volume2Icon, ChevronLeftIcon, ChevronRightIcon, SettingsIcon } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
@@ -7,8 +8,18 @@ import { motion, AnimatePresence } from "framer-motion";
 const mouseClickSound = new Audio("/sounds/mouse-click.mp3");
 
 function ProfileHeader() {
-  const { logout, authUser, updateProfile, isSocketConnected } = useAuthStore();
-  const { isSoundEnabled, toggleSound, isSidebarCollapsed, toggleSidebar } = useChatStore();
+  const { logout, authUser, updateProfile, isSocketConnected } = useAuthStore(useShallow((state) => ({
+    logout: state.logout,
+    authUser: state.authUser,
+    updateProfile: state.updateProfile,
+    isSocketConnected: state.isSocketConnected,
+  })));
+  const { isSoundEnabled, toggleSound, isSidebarCollapsed, toggleSidebar } = useChatStore(useShallow((state) => ({
+    isSoundEnabled: state.isSoundEnabled,
+    toggleSound: state.toggleSound,
+    isSidebarCollapsed: state.isSidebarCollapsed,
+    toggleSidebar: state.toggleSidebar,
+  })));
   const [selectedImg, setSelectedImg] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -86,7 +97,7 @@ function ProfileHeader() {
           {/* Expand Sidebar */}
           <div className="relative group flex items-center">
             <button
-              className="p-2.5 rounded-xl text-[#555] hover:text-[#ececec] hover:bg-white/5 transition-all"
+              className="p-2.5 rounded-xl text-zinc-400 hover:text-[#ececec] hover:bg-white/5 transition-all"
               onClick={toggleSidebar}
             >
               <ChevronRightIcon className="size-5" />
@@ -99,7 +110,7 @@ function ProfileHeader() {
           {/* Sound Toggle */}
           <div className="relative group flex items-center">
             <button
-              className="p-2.5 rounded-xl text-[#555] hover:text-[#ececec] hover:bg-white/5 transition-all"
+              className="p-2.5 rounded-xl text-zinc-400 hover:text-[#ececec] hover:bg-white/5 transition-all"
               onClick={() => {
                 mouseClickSound.currentTime = 0;
                 mouseClickSound.play().catch(() => {});
@@ -120,7 +131,7 @@ function ProfileHeader() {
           {/* Logout */}
           <div className="relative group flex items-center">
             <button
-              className="p-2.5 rounded-xl text-[#555] hover:text-red-400 hover:bg-red-500/10 transition-all"
+              className="p-2.5 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
               onClick={logout}
             >
               <LogOutIcon className="size-5" />
@@ -174,7 +185,7 @@ function ProfileHeader() {
             </h3>
             <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
               <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isSocketConnected ? "bg-white" : "bg-[#333]"}`} />
-              <span className="text-[#555] text-xs leading-none truncate flex-1">
+              <span className="text-zinc-400 text-xs leading-none truncate flex-1">
                 {authUser.customStatus?.text || (isSocketConnected ? "Online" : "Connecting...")}
               </span>
             </div>
@@ -186,7 +197,7 @@ function ProfileHeader() {
           {/* Edit Profile / Settings Cog */}
           <div className="relative group flex items-center">
             <button
-              className={`p-2.5 rounded-xl transition-all ${isEditing ? "text-white bg-white/5" : "text-[#555] hover:text-[#ececec] hover:bg-white/5"}`}
+              className={`p-2.5 rounded-xl transition-all ${isEditing ? "text-white bg-white/5" : "text-zinc-400 hover:text-[#ececec] hover:bg-white/5"}`}
               onClick={() => setIsEditing(!isEditing)}
             >
               <SettingsIcon className="size-5" />
@@ -199,7 +210,7 @@ function ProfileHeader() {
           {/* Sound Toggle */}
           <div className="relative group flex items-center">
             <button
-              className="p-2.5 rounded-xl text-[#555] hover:text-[#ececec] hover:bg-white/5 transition-all"
+              className="p-2.5 rounded-xl text-zinc-400 hover:text-[#ececec] hover:bg-white/5 transition-all"
               onClick={() => {
                 mouseClickSound.currentTime = 0;
                 mouseClickSound.play().catch(() => {});
@@ -220,7 +231,7 @@ function ProfileHeader() {
           {/* Logout */}
           <div className="relative group flex items-center">
             <button
-              className="p-2.5 rounded-xl text-[#555] hover:text-red-400 hover:bg-red-500/10 transition-all"
+              className="p-2.5 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
               onClick={logout}
             >
               <LogOutIcon className="size-5" />
@@ -233,7 +244,7 @@ function ProfileHeader() {
           {/* Collapse Sidebar */}
           <div className="hidden md:flex relative group items-center">
             <button
-              className="p-2.5 rounded-xl text-[#555] hover:text-[#ececec] hover:bg-white/5 transition-all"
+              className="p-2.5 rounded-xl text-zinc-400 hover:text-[#ececec] hover:bg-white/5 transition-all"
               onClick={toggleSidebar}
             >
               <ChevronLeftIcon className="size-5" />
