@@ -28,6 +28,29 @@ function App() {
   };
 
   useEffect(() => {
+    const updateViewportHeight = () => {
+      const vv = window.visualViewport;
+      if (vv) {
+        document.documentElement.style.setProperty("--vvh", `${vv.height}px`);
+      } else {
+        document.documentElement.style.setProperty("--vvh", `${window.innerHeight}px`);
+      }
+    };
+
+    updateViewportHeight();
+    
+    window.visualViewport?.addEventListener("resize", updateViewportHeight);
+    window.visualViewport?.addEventListener("scroll", updateViewportHeight);
+    window.addEventListener("resize", updateViewportHeight);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", updateViewportHeight);
+      window.visualViewport?.removeEventListener("scroll", updateViewportHeight);
+      window.removeEventListener("resize", updateViewportHeight);
+    };
+  }, []);
+
+  useEffect(() => {
     checkAuth();
     const timer = setTimeout(() => {
       setShowSplash(false);
