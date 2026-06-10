@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import BorderAnimatedContainer from "../components/BorderAnimatedContainer";
 import ProfileHeader from "../components/ProfileHeader";
@@ -10,8 +11,38 @@ import { SearchIcon } from "lucide-react";
 function ChatPage() {
   const { activeTab, selectedUser, selectedGroup, isSidebarCollapsed, searchQuery, setSearchQuery } = useChatStore();
 
+  useEffect(() => {
+    // Lock body scroll on mobile viewports to prevent keyboard/layout shifts.
+    // Inner chat messages area and sidebar scroll independently.
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalBodyPosition = document.body.style.position;
+      const originalBodyWidth = document.body.style.width;
+      const originalBodyHeight = document.body.style.height;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+      const originalHtmlHeight = document.documentElement.style.height;
+
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+      document.body.style.height = "100%";
+      document.documentElement.style.overflow = "hidden";
+      document.documentElement.style.height = "100%";
+
+      return () => {
+        document.body.style.overflow = originalBodyOverflow;
+        document.body.style.position = originalBodyPosition;
+        document.body.style.width = originalBodyWidth;
+        document.body.style.height = originalBodyHeight;
+        document.documentElement.style.overflow = originalHtmlOverflow;
+        document.documentElement.style.height = originalHtmlHeight;
+      };
+    }
+  }, []);
+
   return (
-    <div className="relative w-full max-w-6xl h-dvh md:h-[88vh]">
+    <div className="relative w-full max-w-6xl h-[var(--vvh,100dvh)] md:h-[88vh]">
       <BorderAnimatedContainer>
         <div className="flex h-full w-full overflow-hidden">
           {/* LEFT SIDEBAR */}
