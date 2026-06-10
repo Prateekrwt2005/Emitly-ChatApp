@@ -2,6 +2,11 @@ import { resendClient, sender } from "../lib/resend.js";
 import { createWelcomeEmailTemplate } from "../emails/emailTemplates.js";
 
 export const sendWelcomeEmail = async (email, name, clientURL) => {
+  if (!resendClient) {
+    console.warn("Resend client not initialized. Skipping welcome email sending.");
+    return;
+  }
+
   const { data, error } = await resendClient.emails.send({
     from: `${sender.name} <${sender.email}>`,
     to: email,
