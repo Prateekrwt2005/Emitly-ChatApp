@@ -1,12 +1,14 @@
-import { XIcon, ArrowLeftIcon, SearchIcon, Pin, Trash2, Reply, Forward, Palette, Info, Ban, HashIcon } from "lucide-react";
+import { XIcon, ArrowLeftIcon, SearchIcon, Pin, Trash2, Reply, Forward, Palette, Info, Ban, HashIcon, MoreVertical } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useChatStore } from "../store/useChatStore";
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useAuthStore } from "../store/useAuthStore";
 import WallpaperSelector from "./WallpaperSelector";
 
 function ChatHeader() {
   const [isWallpaperOpen, setIsWallpaperOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { 
     selectedUser, 
     setSelectedUser, 
@@ -273,7 +275,7 @@ function ChatHeader() {
       </div>
 
       {/* RIGHT */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 relative">
         {/* Search button */}
         <div className="relative group flex items-center">
           <button
@@ -291,9 +293,9 @@ function ChatHeader() {
           </div>
         </div>
 
-        {/* E2E Secret Chat Toggle Button (Only if NOT group) */}
+        {/* E2E Secret Chat Toggle Button (Desktop Only) */}
         {!isGroup && (
-          <div className="relative group flex items-center">
+          <div className="hidden md:flex relative group items-center">
             <button
               onClick={() => {
                 if (activeSecretChat) {
@@ -335,9 +337,9 @@ function ChatHeader() {
           </div>
         </div>
 
-        {/* Block User Button (Only if NOT group) */}
+        {/* Block User Button (Desktop Only) */}
         {!isGroup && (
-          <div className="relative group flex items-center">
+          <div className="hidden md:flex relative group items-center">
             <button
               onClick={() => blockUser(selectedUser._id)}
               className={`p-2.5 rounded-xl transition-all ${
@@ -354,9 +356,9 @@ function ChatHeader() {
           </div>
         )}
 
-        {/* Delete Group Button (Only if group and user is admin) */}
+        {/* Delete Group Button (Desktop Only) */}
         {isGroup && isAdmin && (
-          <div className="relative group flex items-center">
+          <div className="hidden md:flex relative group items-center">
             <button
               onClick={() => {
                 if (window.confirm("Are you sure you want to delete this channel? This will permanently remove all messages and members.")) {
@@ -374,8 +376,8 @@ function ChatHeader() {
           </div>
         )}
 
-        {/* Wallpaper Customizer */}
-        <div className="relative group flex items-center">
+        {/* Wallpaper Customizer (Desktop Only) */}
+        <div className="hidden md:flex relative group items-center">
           <button
             onClick={() => setIsWallpaperOpen(true)}
             className="p-2.5 rounded-xl text-zinc-400 hover:text-[#ececec] hover:bg-white/5 transition-all"
@@ -387,8 +389,8 @@ function ChatHeader() {
           </div>
         </div>
 
-        {/* Close conversation button */}
-        <div className="relative group flex items-center">
+        {/* Close conversation button (Desktop Only) */}
+        <div className="hidden md:flex relative group items-center">
           <button
             onClick={handleClose}
             className="p-2.5 rounded-xl text-[#555] hover:text-[#ececec] hover:bg-white/5 transition-all"
@@ -398,6 +400,116 @@ function ChatHeader() {
           <div className="absolute top-full mt-2 right-0 scale-90 origin-top-right opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-150 pointer-events-none z-50 bg-[#121214] border border-white/10 text-sm text-zinc-300 px-3 py-1.5 rounded-xl font-medium whitespace-nowrap shadow-lg">
             Close conversation
           </div>
+        </div>
+
+        {/* More actions dropdown (Mobile Only) */}
+        <div className="md:hidden relative flex items-center">
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className={`p-2.5 rounded-xl transition-all ${
+              isMenuOpen
+                ? "text-white bg-white/10"
+                : "text-zinc-400 hover:text-[#ececec] hover:bg-white/5"
+            }`}
+          >
+            <MoreVertical className="w-4.5 h-4.5" />
+          </button>
+
+          <AnimatePresence>
+            {isMenuOpen && (
+              <>
+                {/* Backdrop overlay to close when clicking outside */}
+                <div
+                  className="fixed inset-0 z-40 bg-transparent"
+                  onClick={() => setIsMenuOpen(false)}
+                />
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-[#121214]/95 backdrop-blur-xl border border-white/10 py-1.5 shadow-2xl z-50 overflow-hidden"
+                >
+                  {/* Wallpaper change (Always visible in menu) */}
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsWallpaperOpen(true);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs text-zinc-300 hover:text-white hover:bg-white/5 transition flex items-center gap-2.5"
+                  >
+                    <Palette className="w-4 h-4 text-zinc-400" />
+                    <span>Change Wallpaper</span>
+                  </button>
+
+                  {/* Secret Chat Toggle (Only if NOT group) */}
+                  {!isGroup && (
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        if (activeSecretChat) {
+                          closeSecretChat(activeSecretChat._id);
+                        } else {
+                          initiateSecretChat(selectedUser._id);
+                        }
+                      }}
+                      className={`w-full px-4 py-2.5 text-left text-xs hover:bg-white/5 transition flex items-center gap-2.5 ${
+                        isSecretActive || isSecretPending ? "text-emerald-400" : "text-zinc-300 hover:text-white"
+                      }`}
+                    >
+                      <span>🔒</span>
+                      <span>{activeSecretChat ? "End Secret Chat" : "Start Secret Chat"}</span>
+                    </button>
+                  )}
+
+                  {/* Block / Unblock User (Only if NOT group) */}
+                  {!isGroup && (
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        blockUser(selectedUser._id);
+                      }}
+                      className={`w-full px-4 py-2.5 text-left text-xs transition flex items-center gap-2.5 ${
+                        isBlocked ? "text-red-400 hover:text-red-300" : "text-zinc-300 hover:text-white"
+                      }`}
+                    >
+                      <Ban className="w-4 h-4 text-zinc-400" />
+                      <span>{isBlocked ? "Unblock User" : "Block User"}</span>
+                    </button>
+                  )}
+
+                  {/* Delete Channel (Only if group and user is admin) */}
+                  {isGroup && isAdmin && (
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        if (window.confirm("Are you sure you want to delete this channel? This will permanently remove all messages and members.")) {
+                          deleteGroup(selectedGroup._id);
+                        }
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-xs text-red-400 hover:text-red-300 hover:bg-red-500/5 transition flex items-center gap-2.5"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Delete Channel</span>
+                    </button>
+                  )}
+
+                  {/* Close Conversation */}
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      handleClose();
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs text-zinc-400 hover:text-white hover:bg-white/5 transition flex items-center gap-2.5 border-t border-white/[0.05]"
+                  >
+                    <XIcon className="w-4 h-4" />
+                    <span>Close Conversation</span>
+                  </button>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
