@@ -47,11 +47,20 @@ function MessageInput() {
   const isBlockedByMe = selectedUser ? authUser?.blockedUsers?.includes(selectedUser?._id) : false;
 
   const handleBlur = () => {
-    // Reset window scroll offset to fix mobile keyboard layout viewport shifts
-    setTimeout(() => {
+    // Reset window scroll offset to fix mobile keyboard layout viewport shifts.
+    // We run this on a 50ms interval for 400ms to ensure it catches the end of the keyboard collapse animation.
+    let count = 0;
+    const interval = setInterval(() => {
       window.scrollTo(0, 0);
-      window.dispatchEvent(new Event("resize"));
-    }, 100);
+      if (document.body) document.body.scrollTop = 0;
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      
+      count++;
+      if (count > 8) {
+        clearInterval(interval);
+        window.dispatchEvent(new Event("resize"));
+      }
+    }, 50);
   };
 
   const handleSendMessage = (e) => {
