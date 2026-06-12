@@ -19,7 +19,21 @@ const _dirname= path.resolve();
 const PORT= ENV.PORT || 3000;
 
 app.use(express.json({ limit: "10mb" }));
-app.use(cors({  origin: ENV.CLIENT_URL,  credentials: true }));
+
+const allowedOrigins = [ENV.CLIENT_URL, "http://localhost:5173", "http://127.0.0.1:5173"];
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const isAllowed = allowedOrigins.includes(origin) || origin.endsWith(".vercel.app");
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(null, false); // Fail silently or pass false to let CORS block it
+    }
+  },
+  credentials: true
+}));
+
 app.use(cookieParser());
 
 app.use("/api/auth",authRoutes);

@@ -11,7 +11,16 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: [ENV.CLIENT_URL],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const isAllowed = [ENV.CLIENT_URL, "http://localhost:5173", "http://127.0.0.1:5173"].includes(origin) || 
+                        origin.endsWith(".vercel.app");
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
   },
 });
