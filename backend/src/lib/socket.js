@@ -63,14 +63,14 @@ io.on("connection", (socket) => {
 
   // ================= TYPING =================
   socket.on("typing", ({ receiverId }) => {
-    const receiverSocketId = userSocketMap[receiverId];
+    const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("typing", { senderId: userId });
     }
   });
 
   socket.on("stopTyping", ({ receiverId }) => {
-    const receiverSocketId = userSocketMap[receiverId];
+    const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("stopTyping", { senderId: userId });
     }
@@ -78,7 +78,7 @@ io.on("connection", (socket) => {
 
   // ================= DELIVERED =================
   socket.on("messageDelivered", ({ messageId, senderId }) => {
-    const senderSocketId = userSocketMap[senderId];
+    const senderSocketId = getReceiverSocketId(senderId);
     if (senderSocketId) {
       io.to(senderSocketId).emit("messageDelivered", { messageId });
     }
@@ -91,7 +91,7 @@ io.on("connection", (socket) => {
         status: "seen",
       });
 
-      const senderSocketId = userSocketMap[senderId];
+      const senderSocketId = getReceiverSocketId(senderId);
       if (senderSocketId) {
         io.to(senderSocketId).emit("messageSeenUpdate", { messageId });
       }
@@ -123,11 +123,11 @@ io.on("connection", (socket) => {
       }, { new: true });
 
       if (msg) {
-        const senderSocketId = userSocketMap[senderId];
+        const senderSocketId = getReceiverSocketId(senderId);
         if (senderSocketId) {
           io.to(senderSocketId).emit("messageViewedUpdate", { messageId });
         }
-        const receiverSocketId = userSocketMap[msg.receiverId];
+        const receiverSocketId = getReceiverSocketId(msg.receiverId);
         if (receiverSocketId) {
           io.to(receiverSocketId).emit("messageViewedUpdate", { messageId });
         }
