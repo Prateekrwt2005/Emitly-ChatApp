@@ -1,6 +1,6 @@
 # 💬 Emitly — Premium Real-Time Chat Application
 
-![Emitly Chat App](screenshots/screenshot.png)
+![Emitly Chat App](screenshots/screenshot_cropped.png)
 
 A state-of-the-art, secure, and feature-rich real-time messaging application built using the MERN stack. Emitly combines modern web design aesthetics with robust engineering practices, providing an experience comparable to industry-leading chat applications like Discord and Slack.
 
