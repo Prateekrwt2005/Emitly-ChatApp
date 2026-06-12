@@ -1,4 +1,4 @@
-# 💬 Emitly — Premium Real-Time Chat Application
+# Emitly — Premium Real-Time Chat Application
 
 ![Emitly Chat App](screenshots/screenshot_cropped.png)
 
