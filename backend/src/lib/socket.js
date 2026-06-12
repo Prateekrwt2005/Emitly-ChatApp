@@ -28,7 +28,11 @@ const io = new Server(server, {
 io.use(socketAuthMiddleware);
 
 export function getReceiverSocketId(userId) {
-  return userSocketMap[userId];
+  const sockets = userSocketMap[userId];
+  if (sockets && sockets.size > 0) {
+    return Array.from(sockets)[0];
+  }
+  return null;
 }
 
 const userSocketMap = {};
@@ -37,7 +41,10 @@ io.on("connection", (socket) => {
   console.log("A user connected", socket.user.fullName);
 
   const userId = socket.userId;
-  userSocketMap[userId] = socket.id;
+  if (!userSocketMap[userId]) {
+    userSocketMap[userId] = new Set();
+  }
+  userSocketMap[userId].add(socket.id);
 
   // Join group rooms
   Group.find({ "members.userId": userId }).then((myGroups) => {
@@ -134,7 +141,12 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("A user disconnected", socket.user.fullName);
-    delete userSocketMap[userId];
+    if (userSocketMap[userId]) {
+      userSocketMap[userId].delete(socket.id);
+      if (userSocketMap[userId].size === 0) {
+        delete userSocketMap[userId];
+      }
+    }
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
   });
 });
