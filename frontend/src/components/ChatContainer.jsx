@@ -354,6 +354,27 @@ function ChatContainer() {
     }
   }, [messages, selectedUser]);
 
+  useEffect(() => {
+    if (!selectedGroup) return;
+    const socket = useAuthStore.getState().socket;
+    if (!socket) return;
+
+    let hasUpdates = false;
+    const updatedMessages = messages.map((msg) => {
+      const msgSenderId = msg.senderId?._id || msg.senderId;
+      if (msgSenderId !== authUser?._id && msg.groupId === selectedGroup._id && msg.status !== "seen") {
+        socket.emit("groupMessageSeen", { messageId: msg._id, groupId: selectedGroup._id, senderId: msgSenderId });
+        hasUpdates = true;
+        return { ...msg, status: "seen" };
+      }
+      return msg;
+    });
+
+    if (hasUpdates) {
+      useChatStore.setState({ messages: updatedMessages });
+    }
+  }, [messages, selectedGroup, authUser]);
+
   // Click outside selected message to dismiss selection/reactions popup
   useEffect(() => {
     if (!selectedMessage) return;

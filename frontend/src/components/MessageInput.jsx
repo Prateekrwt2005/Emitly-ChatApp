@@ -208,7 +208,7 @@ function MessageInput() {
     return `${mins}:${remainingSecs < 10 ? "0" : ""}${remainingSecs}`;
   };
 
-  // Close emoji picker and scheduler when clicking outside
+  // Close emoji picker and scheduler when clicking outside & handle global paste
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
@@ -221,8 +221,41 @@ function MessageInput() {
         setIsActionsMenuOpen(false);
       }
     };
+
+    const handleGlobalPaste = (e) => {
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA") && activeEl !== textInputRef.current) {
+        return;
+      }
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              setImagePreview(reader.result);
+              toast.success("Image pasted from clipboard");
+            };
+            reader.readAsDataURL(file);
+            e.preventDefault();
+            if (textInputRef.current) {
+              textInputRef.current.focus();
+            }
+            break;
+          }
+        }
+      }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    window.addEventListener("paste", handleGlobalPaste);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("paste", handleGlobalPaste);
+    };
   }, []);
 
 

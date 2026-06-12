@@ -93,6 +93,18 @@ io.on("connection", (socket) => {
     }
   });
 
+  // ================= GROUP MESSAGE SEEN =================
+  socket.on("groupMessageSeen", async ({ messageId, groupId, senderId }) => {
+    try {
+      await Message.findByIdAndUpdate(messageId, {
+        status: "seen",
+      });
+      io.to(`group_${groupId}`).emit("messageSeenUpdate", { messageId });
+    } catch (error) {
+      console.log("Error updating group seen:", error);
+    }
+  });
+
   // ================= VIEWED (DISAPPEARING MESSAGE) =================
   socket.on("messageViewed", async ({ messageId, senderId }) => {
     try {
