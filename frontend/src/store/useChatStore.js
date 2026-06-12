@@ -73,6 +73,7 @@ export const useChatStore = create((set, get) => ({
       set((state) => ({
         selectedUser,
         selectedGroup: null,
+        messages: [], // Clear messages to prevent flash of old chat
         chats: state.chats.map((c) =>
           c._id === selectedUser._id ? { ...c, unreadCount: 0 } : c
         ),
@@ -81,7 +82,7 @@ export const useChatStore = create((set, get) => ({
         ),
       }));
     } else {
-      set({ selectedUser });
+      set({ selectedUser, messages: [] });
     }
   },
 
@@ -90,13 +91,14 @@ export const useChatStore = create((set, get) => ({
       set((state) => ({
         selectedGroup,
         selectedUser: null,
+        messages: [], // Clear messages to prevent flash of old chat
         groups: state.groups.map((g) =>
           g._id === selectedGroup._id ? { ...g, unreadCount: 0 } : g
         ),
       }));
       get().getGroupMessages(selectedGroup._id);
     } else {
-      set({ selectedGroup });
+      set({ selectedGroup, messages: [] });
     }
   },
 

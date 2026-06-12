@@ -214,12 +214,7 @@ function ChatHeader() {
           )}
 
           {!isGroup && isOnline && (
-            <span className="absolute bottom-0 right-0">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white border-2 border-[#0d0d0d]"></span>
-              </span>
-            </span>
+            <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-white border-2 border-[#0d0d0d] animate-pulse-breath" />
           )}
           {!isGroup && selectedUser.customStatus?.emoji && (
             <span className="absolute -top-1 -left-1 text-[10px] bg-[#0d0d0d] rounded-full border border-white/10 select-none px-0.5 z-10 pointer-events-none">

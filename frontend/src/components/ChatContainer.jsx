@@ -279,45 +279,51 @@ function ChatContainer() {
     }
   }, [selectedUser, selectedGroup, getMessagesByUserId, getGroupMessages]);
 
-  useEffect(() => {
-    subscribeToMessages();
-    return () => unsubscribeFromMessages();
-  }, [selectedUser, selectedGroup, socket, isSocketConnected, subscribeToMessages, unsubscribeFromMessages]);
-
   const prevMessagesLengthRef = useRef(messages.length);
   const prevActiveChatIdRef = useRef(null);
   const activeChatId = selectedUser?._id || selectedGroup?._id;
 
+  // 1. Instant scroll to bottom when messages finish loading
+  useEffect(() => {
+    if (!isMessagesLoading && activeChatId && messages.length > 0) {
+      // Small timeout to allow layout to settle
+      const timer = setTimeout(() => {
+        scrollToBottom(false);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isMessagesLoading, activeChatId, messages.length]);
+
+  // 2. Smooth/Auto scroll for incoming/outgoing new messages during active chat
   useEffect(() => {
     if (!activeChatId) return;
 
-    // Chat switched -> scroll to bottom instantly
+    // Chat switched -> track current message length and return (handled by isMessagesLoading effect)
     if (activeChatId !== prevActiveChatIdRef.current) {
       prevActiveChatIdRef.current = activeChatId;
       prevMessagesLengthRef.current = messages.length;
-      scrollToBottom();
       return;
     }
 
     // New message arrived or sent
-    if (messages.length > prevMessagesLengthRef.current) {
+    if (!isMessagesLoading && messages.length > prevMessagesLengthRef.current) {
       if (prevMessagesLengthRef.current === 0) {
-        // Initial load of messages -> scroll to bottom
-        scrollToBottom();
+        // First batch loaded -> scroll to bottom instantly
+        scrollToBottom(false);
       } else {
         const lastMsg = messages[messages.length - 1];
         const lastMsgSenderId = lastMsg.senderId?._id || lastMsg.senderId;
         const isMe = lastMsgSenderId === authUser?._id;
 
         if (isMe) {
-          scrollToBottom();
+          scrollToBottom(true);
         } else {
           // Only scroll if already near bottom
           const container = scrollContainerRef.current;
           if (container) {
             const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 350;
             if (isNearBottom) {
-              scrollToBottom();
+              scrollToBottom(true);
             }
           }
         }
@@ -325,7 +331,7 @@ function ChatContainer() {
     }
 
     prevMessagesLengthRef.current = messages.length;
-  }, [messages, activeChatId, authUser]);
+  }, [messages, activeChatId, authUser, isMessagesLoading]);
 
   useEffect(() => {
     if (pinnedMessages.length > 0 && currentPinIndex >= pinnedMessages.length) {
@@ -416,8 +422,12 @@ function ChatContainer() {
 
   if (!activeChat) return null;
 
-  const scrollToBottom = () => {
-    messageEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+  const scrollToBottom = (smooth = false) => {
+    messageEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
+  };
+
+  const handleImageLoad = () => {
+    scrollToBottom(false);
   };
 
   const scrollToMessage = (msgId) => {
@@ -863,6 +873,7 @@ function ChatContainer() {
                               src={msg.image}
                               alt="Shared"
                               className={`rounded-xl object-cover max-h-60 w-full ${msg.text ? "mb-1.5" : ""}`}
+                              onLoad={handleImageLoad}
                             />
                           )}
 

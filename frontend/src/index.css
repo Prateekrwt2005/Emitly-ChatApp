@@ -132,3 +132,17 @@ body {
   fill: var(--accent-color) !important;
   stroke: var(--accent-color) !important;
 }
+
+/* Custom breathing animation for online indicator dot */
+@keyframes pulse-breath {
+  0%, 100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-pulse-breath {
+  animation: pulse-breath 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

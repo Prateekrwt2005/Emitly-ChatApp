@@ -143,12 +143,7 @@ function ChatsList() {
                     </span>
                   )}
                   {isOnline && (
-                    <span className="absolute bottom-0 right-0">
-                      <span className="relative flex h-2.5 w-2.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60"></span>
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white border-2 border-[#0d0d0d]"></span>
-                      </span>
-                    </span>
+                    <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-white border-2 border-[#0d0d0d] animate-pulse-breath" />
                   )}
                   {isSidebarCollapsed && chat.unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-white text-black font-bold text-[9px] min-w-4 h-4 rounded-full flex items-center justify-center px-1 border border-[#0d0d0d] shadow-sm">

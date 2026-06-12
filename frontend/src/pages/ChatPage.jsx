@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useChatStore } from "../store/useChatStore";
+import { useAuthStore } from "../store/useAuthStore";
 import BorderAnimatedContainer from "../components/BorderAnimatedContainer";
 import ProfileHeader from "../components/ProfileHeader";
 import ActiveTabSwitch from "../components/ActiveTabSwitch";
@@ -10,7 +11,16 @@ import ChatContainer from "../components/ChatContainer";
 import NoConversationPlaceholder from "../components/NoConversationPlaceholder";
 import { SearchIcon } from "lucide-react";
 function ChatPage() {
-  const { activeTab, selectedUser, selectedGroup, isSidebarCollapsed, searchQuery, setSearchQuery } = useChatStore(
+  const { 
+    activeTab, 
+    selectedUser, 
+    selectedGroup, 
+    isSidebarCollapsed, 
+    searchQuery, 
+    setSearchQuery,
+    subscribeToMessages,
+    unsubscribeFromMessages
+  } = useChatStore(
     useShallow((state) => ({
       activeTab: state.activeTab,
       selectedUser: state.selectedUser,
@@ -18,8 +28,27 @@ function ChatPage() {
       isSidebarCollapsed: state.isSidebarCollapsed,
       searchQuery: state.searchQuery,
       setSearchQuery: state.setSearchQuery,
+      subscribeToMessages: state.subscribeToMessages,
+      unsubscribeFromMessages: state.unsubscribeFromMessages,
     }))
   );
+
+  const { socket, isSocketConnected } = useAuthStore(
+    useShallow((state) => ({
+      socket: state.socket,
+      isSocketConnected: state.isSocketConnected,
+    }))
+  );
+
+  useEffect(() => {
+    if (socket && isSocketConnected) {
+      subscribeToMessages();
+      return () => {
+        unsubscribeFromMessages();
+      };
+    }
+  }, [socket, isSocketConnected, subscribeToMessages, unsubscribeFromMessages]);
+
 
   useEffect(() => {
     // Lock body scroll on mobile viewports to prevent keyboard/layout shifts.
