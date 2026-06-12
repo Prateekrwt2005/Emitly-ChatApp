@@ -19,7 +19,7 @@
 }
 
 * {
-  font-family: 'Gilroy', 'Geist', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Gilroy', 'Geist', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 body {

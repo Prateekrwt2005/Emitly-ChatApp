@@ -258,7 +258,7 @@ function App() {
       <FullScreenReactionCanvas />
 
       <Toaster
-        position="top-right"
+        position={isMobile ? "top-center" : "top-right"}
         toastOptions={{
           style: {
             background: "#16181d",

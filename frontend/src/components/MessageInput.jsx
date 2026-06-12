@@ -113,6 +113,27 @@ function MessageInput() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImagePreview(reader.result);
+            toast.success("Image pasted from clipboard");
+          };
+          reader.readAsDataURL(file);
+          e.preventDefault();
+          break;
+        }
+      }
+    }
+  };
+
   const handleTyping = () => {
     const socket = useAuthStore.getState().socket;
     if (!selectedUser || !socket) return;
@@ -204,27 +225,6 @@ function MessageInput() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Inline formatting helper
-  const applyFormatting = (prefix, suffix) => {
-    const input = textInputRef.current;
-    if (!input) return;
-
-    const start = input.selectionStart;
-    const end = input.selectionEnd;
-    const val = input.value;
-
-    const selectedText = val.substring(start, end);
-    const replacement = prefix + selectedText + suffix;
-
-    setText(val.substring(0, start) + replacement + val.substring(end));
-    
-    // Reset focus and position selection cursor
-    setTimeout(() => {
-      input.focus();
-      const newCursorPos = start + prefix.length + selectedText.length + suffix.length;
-      input.setSelectionRange(newCursorPos, newCursorPos);
-    }, 50);
-  };
 
   // Schedule handler
   const handleSetSchedule = (e) => {
@@ -294,52 +294,6 @@ function MessageInput() {
         </div>
       )}
 
-      {/* MARKDOWN FORMATTING TOOLBAR */}
-      {!isBlockedByMe && !isRecording && (
-        <div className="flex gap-1.5 mb-2 px-1 text-zinc-500 text-xs items-center select-none overflow-x-auto whitespace-nowrap scrollbar-none [&::-webkit-scrollbar]:hidden">
-          <span className="hidden sm:inline-block text-[10px] text-zinc-600 font-bold uppercase tracking-wider mr-1.5">Format:</span>
-          <button
-            type="button"
-            onClick={() => applyFormatting("**", "**")}
-            className="px-2 py-1 bg-white/5 border border-white/[0.04] rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 text-[10px] font-bold transition-all"
-            title="Bold (**text**)"
-          >
-            B
-          </button>
-          <button
-            type="button"
-            onClick={() => applyFormatting("*", "*")}
-            className="px-2 py-1 bg-white/5 border border-white/[0.04] rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 text-[10px] italic transition-all"
-            title="Italic (*text*)"
-          >
-            I
-          </button>
-          <button
-            type="button"
-            onClick={() => applyFormatting("~~", "~~")}
-            className="px-2 py-1 bg-white/5 border border-white/[0.04] rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 text-[10px] line-through transition-all"
-            title="Strikethrough (~~text~~)"
-          >
-            S
-          </button>
-          <button
-            type="button"
-            onClick={() => applyFormatting("`", "`")}
-            className="px-2 py-1 bg-white/5 border border-white/[0.04] rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 text-[10px] font-mono transition-all"
-            title="Inline Code (`text`)"
-          >
-            C
-          </button>
-          <button
-            type="button"
-            onClick={() => applyFormatting("```\n", "\n```")}
-            className="px-2 py-1 bg-white/5 border border-white/[0.04] rounded-lg text-zinc-300 hover:text-white hover:bg-white/10 text-[10px] font-mono transition-all"
-            title="Code Block (```code```)"
-          >
-            Code Block
-          </button>
-        </div>
-      )}
 
       {/* IMAGE PREVIEW */}
       {imagePreview && (
@@ -620,6 +574,7 @@ function MessageInput() {
                   handleTyping();
                 }}
                 onBlur={handleBlur}
+                onPaste={handlePaste}
                 placeholder={isBlockedByMe ? "You have blocked this user" : "Message..."}
                 className="flex-1 bg-transparent outline-none text-base md:text-sm text-[#e0e0e0] placeholder:text-zinc-500 disabled:opacity-50 px-1 sm:px-2"
               />

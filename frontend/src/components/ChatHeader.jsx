@@ -173,8 +173,10 @@ function ChatHeader() {
   const displayAvatar = isGroup ? selectedGroup.avatar : selectedUser.profilePic;
   const displayBio = isGroup ? selectedGroup.description : selectedUser.bio;
 
-  const isSecretActive = !isGroup && activeSecretChat && activeSecretChat.status === "active";
-  const isSecretPending = !isGroup && activeSecretChat && activeSecretChat.status === "pending";
+  const isSecretActive = !isGroup && activeSecretChat && activeSecretChat.status === "active" && selectedUser &&
+    (activeSecretChat.initiatorId === selectedUser._id || activeSecretChat.receiverId === selectedUser._id);
+  const isSecretPending = !isGroup && activeSecretChat && activeSecretChat.status === "pending" && selectedUser &&
+    (activeSecretChat.initiatorId === selectedUser._id || activeSecretChat.receiverId === selectedUser._id);
 
   return (
     <div className="chat-header flex justify-between items-center px-4 py-3 bg-[#0d0d0d] border-b border-white/[0.06] select-none">
@@ -227,9 +229,11 @@ function ChatHeader() {
         </div>
 
         <div className="text-left">
-          <h3 className="text-[#ececec] font-medium text-sm leading-tight flex items-center gap-1.5 truncate max-w-[250px]" title={displayBio || undefined}>
-            {isGroup && <HashIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />}
-            <span className="truncate">{displayName}</span>
+          <div className="flex items-center gap-1.5 max-w-[280px] sm:max-w-[350px]">
+            <h3 className="text-[#ececec] font-medium text-sm leading-tight flex items-center gap-1 truncate" title={displayBio || undefined}>
+              {isGroup && <HashIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />}
+              <span className="truncate">{displayName}</span>
+            </h3>
             {isSecretActive && (
               <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1 py-0.5 rounded font-semibold shrink-0 select-none flex items-center gap-0.5" title="End-to-End Encrypted">
                 🔒 E2E
@@ -245,7 +249,7 @@ function ChatHeader() {
                 — {displayBio}
               </span>
             )}
-          </h3>
+          </div>
           {isGroup ? (
             <p className="text-zinc-400 text-xs mt-0.5 truncate max-w-[200px]">
               {selectedGroup.members?.length || 0} members

@@ -153,7 +153,8 @@ function ViewOnceMessage({ msg, isMe, authUser, selectedUser, socket }) {
       initial="visible"
       animate={isExpiring ? "hidden" : "visible"}
       variants={smokeVariants}
-      className="relative flex flex-col gap-1.5"
+      className="relative flex flex-col gap-1.5 select-none"
+      onContextMenu={(e) => e.preventDefault()}
     >
       <div className="absolute -top-2.5 -right-2.5 bg-amber-500 text-black text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg border border-black/10 animate-bounce">
         {countdown}
@@ -163,7 +164,9 @@ function ViewOnceMessage({ msg, isMe, authUser, selectedUser, socket }) {
         <img
           src={msg.image}
           alt="Shared"
-          className="rounded-xl object-cover max-h-60 w-full"
+          className="rounded-xl object-cover max-h-60 w-full pointer-events-none select-none"
+          onContextMenu={(e) => e.preventDefault()}
+          onDragStart={(e) => e.preventDefault()}
         />
       )}
 
@@ -171,7 +174,11 @@ function ViewOnceMessage({ msg, isMe, authUser, selectedUser, socket }) {
         <CustomAudioPlayer src={msg.audio} isMe={isMe} />
       )}
 
-      {msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>}
+      {msg.text && (
+        <p className="whitespace-pre-wrap select-none" onContextMenu={(e) => e.preventDefault()}>
+          {msg.text}
+        </p>
+      )}
     </motion.div>
   );
 }
@@ -983,7 +990,7 @@ function ChatContainer() {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}
-                            {isMe && !msg.groupId && (
+                            {isMe && (
                               <span className="ml-0.5 flex items-center">
                                 {msg.status === "sent" && <Tick color="#71717a" />}
                                 {msg.status === "delivered" && <DoubleTick color="#71717a" />}

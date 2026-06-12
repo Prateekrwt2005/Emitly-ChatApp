@@ -334,7 +334,12 @@ export const useChatStore = create((set, get) => ({
     if (!selectedUser) return;
 
     // Secret Chat E2E encryption interceptor
-    if (get().activeSecretChat && get().activeSecretChat.status === "active") {
+    const isActiveSecret = get().activeSecretChat && 
+                           get().activeSecretChat.status === "active" &&
+                           selectedUser &&
+                           (get().activeSecretChat.initiatorId === selectedUser._id || get().activeSecretChat.receiverId === selectedUser._id);
+
+    if (isActiveSecret) {
       const sharedKey = localCryptoKeys.sharedKeys[selectedUser._id];
       if (sharedKey) {
         try {
@@ -626,6 +631,9 @@ export const useChatStore = create((set, get) => ({
       }
       set({ activeSecretChat: null, messages: [] });
       toast.success("Secret chat closed. Messages wiped.");
+      if (selectedUser) {
+        get().getMessagesByUserId(selectedUser._id);
+      }
     } catch (error) {
       toast.error("Failed to close secret chat");
     }
@@ -640,6 +648,9 @@ export const useChatStore = create((set, get) => ({
       }
       set({ activeSecretChat: null, messages: [] });
       toast.error("Secret chat closed by partner. Messages wiped.");
+      if (selectedUser) {
+        get().getMessagesByUserId(selectedUser._id);
+      }
     }
   },
 
@@ -796,6 +807,9 @@ export const useChatStore = create((set, get) => ({
               onClick: () => {
                 toast.dismiss(t.id);
                 get().acceptSecretChatRequest({ _id: sessionId, initiatorId, initiatorPublicKey: publicKey });
+                if (initiator) {
+                  get().setSelectedUser(initiator);
+                }
               },
               className: "px-2.5 py-1 bg-white text-black text-[10px] font-bold rounded-md hover:bg-zinc-200"
             }, "Accept"),
@@ -848,11 +862,16 @@ export const useChatStore = create((set, get) => ({
       if (newMessage.groupId) {
         if (selectedGroup && newMessage.groupId === selectedGroup._id) {
           set((state) => {
-            const exists = state.messages.some((m) => m._id === newMessage._id);
-            if (exists) {
-              return {
-                messages: state.messages.map((m) => m._id === newMessage._id ? newMessage : m)
-              };
+            const existsIndex = state.messages.findIndex((m) =>
+              m._id === newMessage._id ||
+              (m._id && m._id.toString().startsWith("temp-") &&
+                (m.text === newMessage.text || m.image === newMessage.image || m.audio === newMessage.audio) &&
+                (m.senderId?._id || m.senderId || "").toString() === (newMessage.senderId?._id || newMessage.senderId || "").toString())
+            );
+            if (existsIndex > -1) {
+              const updated = [...state.messages];
+              updated[existsIndex] = newMessage;
+              return { messages: updated };
             } else {
               return {
                 messages: [...state.messages, newMessage]
@@ -877,11 +896,16 @@ export const useChatStore = create((set, get) => ({
 
       if (isCurrentChat) {
         set((state) => {
-          const exists = state.messages.some((m) => m._id === newMessage._id);
-          if (exists) {
-            return {
-              messages: state.messages.map((m) => m._id === newMessage._id ? newMessage : m)
-            };
+          const existsIndex = state.messages.findIndex((m) =>
+            m._id === newMessage._id ||
+            (m._id && m._id.toString().startsWith("temp-") &&
+              (m.text === newMessage.text || m.image === newMessage.image || m.audio === newMessage.audio) &&
+              (m.senderId?._id || m.senderId || "").toString() === (newMessage.senderId?._id || newMessage.senderId || "").toString())
+          );
+          if (existsIndex > -1) {
+            const updated = [...state.messages];
+            updated[existsIndex] = newMessage;
+            return { messages: updated };
           } else {
             return {
               messages: [...state.messages, newMessage]

@@ -2,6 +2,7 @@ import cloudinary from "../lib/cloudinary.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
+import Group from "../models/Group.js";
 
 // ================= GET ALL CONTACTS =================
 export const getAllContacts = async (req, res) => {
@@ -196,11 +197,13 @@ export const getChatPartners = async (req, res) => {
 
     const chatPartnerIds = [
       ...new Set(
-        messages.map((msg) =>
-          msg.senderId.toString() === loggedInUserId.toString()
-            ? msg.receiverId.toString()
-            : msg.senderId.toString()
-        )
+        messages
+          .filter((msg) => msg.senderId && msg.receiverId)
+          .map((msg) =>
+            msg.senderId.toString() === loggedInUserId.toString()
+              ? msg.receiverId.toString()
+              : msg.senderId.toString()
+          )
       ),
     ];
 
@@ -240,22 +243,41 @@ export const deleteMessage = async (req, res) => {
       return res.status(404).json({ message: "Message not found" });
     }
 
-    // Authorization check: only sender or receiver of the message
-    if (message.senderId.toString() !== userId.toString() && message.receiverId.toString() !== userId.toString()) {
+    // Authorization check: sender, receiver, or group admin
+    let isAuthorized = false;
+    if (message.senderId.toString() === userId.toString()) {
+      isAuthorized = true;
+    } else if (message.receiverId && message.receiverId.toString() === userId.toString()) {
+      isAuthorized = true;
+    } else if (message.groupId) {
+      const group = await Group.findById(message.groupId);
+      if (group) {
+        const member = group.members.find(m => m.userId.toString() === userId.toString());
+        if (member && member.role === "admin") {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
       return res.status(403).json({ message: "Unauthorized to delete this message" });
     }
 
     await Message.findByIdAndDelete(messageId);
 
     // Notify receiver and sender via socket
-    const receiverSocketId = getReceiverSocketId(message.receiverId);
-    const senderSocketId = getReceiverSocketId(message.senderId);
+    if (message.groupId) {
+      io.to(`group_${message.groupId}`).emit("messageDeleted", { messageId });
+    } else {
+      const receiverSocketId = getReceiverSocketId(message.receiverId);
+      const senderSocketId = getReceiverSocketId(message.senderId);
 
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("messageDeleted", { messageId });
-    }
-    if (senderSocketId) {
-      io.to(senderSocketId).emit("messageDeleted", { messageId });
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("messageDeleted", { messageId });
+      }
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("messageDeleted", { messageId });
+      }
     }
 
     res.status(200).json({ message: "Message deleted successfully", messageId });
@@ -276,8 +298,23 @@ export const togglePinMessage = async (req, res) => {
       return res.status(404).json({ message: "Message not found" });
     }
 
-    // Authorization check: only sender or receiver can pin
-    if (message.senderId.toString() !== userId.toString() && message.receiverId.toString() !== userId.toString()) {
+    // Authorization check: only sender, receiver, or group member can pin
+    let isAuthorized = false;
+    if (message.senderId.toString() === userId.toString()) {
+      isAuthorized = true;
+    } else if (message.receiverId && message.receiverId.toString() === userId.toString()) {
+      isAuthorized = true;
+    } else if (message.groupId) {
+      const group = await Group.findById(message.groupId);
+      if (group) {
+        const isMember = group.members.some(m => m.userId.toString() === userId.toString());
+        if (isMember) {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
       return res.status(403).json({ message: "Unauthorized to pin this message" });
     }
 
@@ -285,14 +322,18 @@ export const togglePinMessage = async (req, res) => {
     await message.save();
 
     // Notify receiver and sender via socket
-    const receiverSocketId = getReceiverSocketId(message.receiverId);
-    const senderSocketId = getReceiverSocketId(message.senderId);
+    if (message.groupId) {
+      io.to(`group_${message.groupId}`).emit("messagePinned", message);
+    } else {
+      const receiverSocketId = getReceiverSocketId(message.receiverId);
+      const senderSocketId = getReceiverSocketId(message.senderId);
 
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("messagePinned", message);
-    }
-    if (senderSocketId) {
-      io.to(senderSocketId).emit("messagePinned", message);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("messagePinned", message);
+      }
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("messagePinned", message);
+      }
     }
 
     res.status(200).json(message);

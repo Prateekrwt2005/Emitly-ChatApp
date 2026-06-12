@@ -284,7 +284,14 @@ function ProfileHeader() {
                 <input
                   type="text"
                   value={statusEmoji}
-                  onChange={(e) => setStatusEmoji(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const filtered = Array.from(val).filter(char => 
+                      (/\p{Extended_Pictographic}/u.test(char) || /\p{Emoji_Presentation}/u.test(char)) && 
+                      !/[a-zA-Z0-9\s!@#$%^&*()_+\-=\[\]{};':",./<>?\\|`~]/.test(char)
+                    ).join("");
+                    setStatusEmoji(filtered);
+                  }}
                   placeholder="🚀"
                   maxLength={2}
                   className="w-full bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.1] focus:border-white/20 transition rounded-lg py-1.5 text-center text-xs text-white outline-none mt-1"
