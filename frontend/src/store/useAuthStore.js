@@ -114,6 +114,7 @@ export const useAuthStore = create((set, get) => ({
     set({ socket });
 
     socket.on("connect", () => {
+      console.log("Socket connected successfully with ID:", socket.id);
       set({ isSocketConnected: true });
     });
 
@@ -124,10 +125,12 @@ export const useAuthStore = create((set, get) => ({
 
     // listen for online users event
     socket.on("getOnlineUsers", (userIds) => {
+      console.log("Online users received on client:", userIds);
       set({ onlineUsers: userIds });
     });
 
     socket.on("disconnect", () => {
+      console.log("Socket disconnected");
       set({ isSocketConnected: false, onlineUsers: [] });
     });
   },
